@@ -1,0 +1,28 @@
+# Lychee link checker config (.github/workflows/docs.yml "Link Check" job)
+# https://lychee.cli.rs/config/#config-file
+
+exclude = [
+  # Doc/code examples showing how to talk to a locally-running netevd, not
+  # real checkable hyperlinks.
+  '^https?://localhost([:/]|$)',
+  '^https?://127\.0\.0\.1([:/]|$)',
+  # Cloud instance-metadata endpoints referenced in src/cloud/*.rs comments —
+  # only reachable from inside the respective cloud provider's network.
+  '^https?://169\.254\.169\.254(/|$)',
+  '^https?://metadata\.google\.internal(/|$)',
+  # Root-relative links in docs/user/*.md are website routes, resolved only
+  # once scripts/user-docs/sync-to-website.mjs syncs them onto hypersdk-web —
+  # they don't correspond to files in this repo.
+  '^/',
+  # Private repo: 404s for unauthenticated visitors by design, not a broken link.
+  '^https?://github\.com/hypersdk/hypersdk$',
+]
+
+# These two files use root-relative links (`/docs/netevd`, `/contact`) that
+# only resolve once synced onto the external docs website — lychee treats
+# unresolvable root-relative links as a hard input error that `exclude`
+# patterns can't filter, so skip these files by path instead.
+exclude_path = [
+  "docs/user/README.md",
+  "docs/user/admin-basics.md",
+]

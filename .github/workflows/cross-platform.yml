@@ -71,10 +71,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Rust 1.70
+      # Keep in sync with `rust-version` in Cargo.toml (currently set by
+      # zbus/zvariant 5.15's own declared MSRV).
+      - name: Install Rust 1.87
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.70"
+          toolchain: "1.87"
 
       - name: Install dependencies
         run: |

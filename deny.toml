@@ -6,20 +6,20 @@
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# The lint level for security vulnerabilities
-vulnerability = "deny"
-# The lint level for unmaintained crates
-unmaintained = "warn"
+# Vulnerability advisories always deny as of cargo-deny 0.14+ (the old
+# `vulnerability` lint-level field was removed).
+# Scope for unmaintained-crate advisories: "none" keeps this informational
+# rather than failing CI (the old `unmaintained = "warn"` lint level was
+# replaced by this all/workspace/transitive/none scope selector).
+unmaintained = "none"
 # The lint level for crates that have been yanked from their source registry
 yanked = "deny"
-# The lint level for crates with security notices
-notice = "warn"
 # Ignore specific advisories
 ignore = []
 
 [licenses]
-# The lint level for crates which do not have a detectable license
-unlicensed = "deny"
+# Unlicensed crates always deny as of cargo-deny 0.14+ (the old
+# `unlicensed` lint-level field was removed).
 # List of explicitly allowed licenses
 allow = [
     "MIT",
@@ -31,6 +31,8 @@ allow = [
     "0BSD",
     "Zlib",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CC0-1.0",
     "LGPL-3.0-or-later",
 ]
 # The confidence threshold for detecting a license from license text.

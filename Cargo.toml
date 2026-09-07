@@ -2,6 +2,9 @@
 name = "netevd"
 version = "0.3.3"
 edition = "2021"
+# Floor set by zbus/zvariant 5.15's own declared rust-version — keep this in
+# sync with the `msrv` job in .github/workflows/cross-platform.yml.
+rust-version = "1.87"
 authors = ["ZyvorAI Labs Private Limited <info@zyvor.dev>"]
 license = "Apache-2.0"
 description = "High-performance network event daemon for systemd-networkd, NetworkManager, and dhclient with routing policy rules and script execution"
@@ -15,6 +18,8 @@ exclude = [
     "packaging/*",
     ".github/*",
     "tests/*",
+    "benches/*",
+    "contrib/*",
     "config/*.yaml",
 ]
 
@@ -92,6 +97,11 @@ signal-hook-tokio = { version = "0.4", features = ["futures-v0_3"] }
 
 [dev-dependencies]
 tempfile = "3.25"
+criterion = "0.5"
+
+[[bench]]
+name = "hooks"
+harness = false
 
 [profile.release]
 opt-level = 3
