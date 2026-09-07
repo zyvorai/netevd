@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: netevd
 Upstream-Contact: Zyvor AI Labs Private Limited <legal@zyvor.dev>
-Source: https://github.com/hypersdk/netevd
+Source: https://github.com/zyvorai/netevd
 
 Files: *
 Copyright: 2026 Zyvor AI Labs Private Limited <legal@zyvor.dev>

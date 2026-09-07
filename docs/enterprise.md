@@ -2,7 +2,7 @@
 
 | | Community Edition (this repo) | Enterprise ([zyvor.dev](https://zyvor.dev/?utm_source=github&utm_medium=netevd)) |
 |---|------------------------------|-------------------------------------------------------------------------------------|
-| **Support** | [GitHub Issues](https://github.com/hypersdk/netevd/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev), professional services |
+| **Support** | [GitHub Issues](https://github.com/zyvorai/netevd/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev), professional services |
 | **Scope** | Self-hosted event hooks | Production rollouts, platform integration |
 | **Platform** | netevd daemon | Full networking stack with netctl, cloud-netconfig, HyperSDK |
 

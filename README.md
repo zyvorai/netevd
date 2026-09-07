@@ -1,10 +1,10 @@
 # netevd
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![CI](https://github.com/hypersdk/netevd/actions/workflows/ci.yml/badge.svg)](https://github.com/hypersdk/netevd/actions/workflows/ci.yml)
-[![Functional Tests](https://github.com/hypersdk/netevd/actions/workflows/functional-tests.yml/badge.svg)](https://github.com/hypersdk/netevd/actions/workflows/functional-tests.yml)
-[![codecov](https://codecov.io/gh/hypersdk/netevd/branch/main/graph/badge.svg)](https://codecov.io/gh/hypersdk/netevd)
-[![Release](https://img.shields.io/github/v/release/hypersdk/netevd?sort=semver)](https://github.com/hypersdk/netevd/releases)
+[![CI](https://github.com/zyvorai/netevd/actions/workflows/ci.yml/badge.svg)](https://github.com/zyvorai/netevd/actions/workflows/ci.yml)
+[![Functional Tests](https://github.com/zyvorai/netevd/actions/workflows/functional-tests.yml/badge.svg)](https://github.com/zyvorai/netevd/actions/workflows/functional-tests.yml)
+[![codecov](https://codecov.io/gh/zyvorai/netevd/branch/main/graph/badge.svg)](https://codecov.io/gh/zyvorai/netevd)
+[![Release](https://img.shields.io/github/v/release/zyvorai/netevd?sort=semver)](https://github.com/zyvorai/netevd/releases)
 
 <p align="center">
   <a href="https://zyvor.dev/demo?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Demo-F97316?style=flat-square" alt="Demo"/></a>
@@ -46,7 +46,7 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into a sin
 ### GitHub Release (recommended)
 
 ```bash
-curl -LO https://github.com/hypersdk/netevd/releases/download/v0.3.2/netevd-0.3.2-linux-amd64.tar.gz
+curl -LO https://github.com/zyvorai/netevd/releases/download/v0.3.2/netevd-0.3.2-linux-amd64.tar.gz
 tar xzf netevd-*-linux-amd64.tar.gz && cd netevd-*-linux-amd64
 sudo ./install.sh
 sudo systemctl enable --now netevd
@@ -55,7 +55,7 @@ sudo systemctl enable --now netevd
 ### Build from source
 
 ```bash
-git clone https://github.com/hypersdk/netevd.git && cd netevd
+git clone https://github.com/zyvorai/netevd.git && cd netevd
 cargo build --release
 sudo install -Dm755 target/release/netevd /usr/bin/netevd
 sudo install -Dm644 systemd/netevd.service /lib/systemd/system/netevd.service
@@ -257,7 +257,7 @@ cargo build && cargo test && cargo clippy -- -D warnings
 
 | | Community Edition (this repo) | Enterprise ([zyvor.dev](https://zyvor.dev/?utm_source=github&utm_medium=netevd)) |
 |---|------------------------------|-------------------------------------------------------------------------------------|
-| **Support** | [GitHub Issues](https://github.com/hypersdk/netevd/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev), professional services |
+| **Support** | [GitHub Issues](https://github.com/zyvorai/netevd/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev), professional services |
 | **Scope** | Self-hosted event hooks | Production rollouts, platform integration |
 | **Platform** | netevd daemon | Full networking stack with netctl, cloud-netconfig, HyperSDK |
 
@@ -270,7 +270,7 @@ Community Edition covers self-hosted event hooks and policy routing. Production 
 netevd Community Edition is free and open source, maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev?utm_source=github&utm_medium=netevd)
 
 - **Enterprise / production:** [zyvor.dev/contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd) · [sales@zyvor.dev](mailto:sales@zyvor.dev)
-- **Community help:** [GitHub Issues](https://github.com/hypersdk/netevd/issues) · [SECURITY.md](SECURITY.md)
+- **Community help:** [GitHub Issues](https://github.com/zyvorai/netevd/issues) · [SECURITY.md](SECURITY.md)
 
 ## License
 
@@ -284,4 +284,4 @@ Other Zyvor products, platforms, services, and commercial offerings are separate
 
 Enterprise: [sales@zyvor.dev](mailto:sales@zyvor.dev) · General: [info@zyvor.dev](mailto:info@zyvor.dev).
 
-Related: [netctl](https://github.com/hypersdk/netctl) · [cloud-netconfig](https://github.com/hypersdk/cloud-netconfig) · [hypersdk](https://github.com/hypersdk/hypersdk)
+Related: [netctl](https://github.com/zyvorai/netctl) · [cloud-netconfig](https://github.com/zyvorai/cloud-netconfig)

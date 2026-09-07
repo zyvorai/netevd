@@ -14,8 +14,6 @@ exclude = [
   # once scripts/user-docs/sync-to-website.mjs syncs them onto hypersdk-web —
   # they don't correspond to files in this repo.
   '^/',
-  # Private repo: 404s for unauthenticated visitors by design, not a broken link.
-  '^https?://github\.com/hypersdk/hypersdk$',
 ]
 
 # These two files use root-relative links (`/docs/netevd`, `/contact`) that

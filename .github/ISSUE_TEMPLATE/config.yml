@@ -16,11 +16,11 @@ contact_links:
     url: https://zyvor.dev/roi?utm_source=github&utm_medium=netevd
     about: Estimate migration and infrastructure savings
   - name: "CE vs Enterprise"
-    url: https://github.com/hypersdk/netevd/blob/main/docs/enterprise.md
+    url: https://github.com/zyvorai/netevd/blob/main/docs/enterprise.md
     about: When to use GitHub vs contact Zyvor for production
   - name: "Discussions"
-    url: https://github.com/hypersdk/netevd/discussions
+    url: https://github.com/zyvorai/netevd/discussions
     about: Community questions and ideas
   - name: "Security"
-    url: https://github.com/hypersdk/netevd/blob/main/SECURITY.md
+    url: https://github.com/zyvorai/netevd/blob/main/SECURITY.md
     about: Report vulnerabilities privately
