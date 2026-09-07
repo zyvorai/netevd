@@ -1,7 +1,6 @@
 # ZyvorAI Labs — netevd corporate reference
 
-**Source code:** [LICENSE](../../LICENSE) (Apache-2.0)  
-**Zyvor distribution:** [ZYVOR-COMPANY-TERMS.md](../../ZYVOR-COMPANY-TERMS.md)
+**Source code:** [LICENSE](../../LICENSE) (Apache-2.0)
 
 | Field | Value |
 |-------|--------|

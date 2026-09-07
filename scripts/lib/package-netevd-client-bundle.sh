@@ -21,7 +21,7 @@ package_netevd_client_bundle() {
     chmod +x "${stage}/netevd"
     local lib="${build_dir}/scripts/lib"
     chmod +x "${lib}/copy-zyvor-legal-to-bundle.sh"
-    "${lib}/copy-zyvor-legal-to-bundle.sh" "${stage}" "${build_dir}" --with-accept
+    "${lib}/copy-zyvor-legal-to-bundle.sh" "${stage}" "${build_dir}"
 
     cp "${build_dir}/systemd/netevd.service" "${stage}/netevd.service"
     cp "${build_dir}/config/netevd.example.yaml" "${stage}/config.example.yaml"
@@ -35,11 +35,6 @@ ENV_EOF
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-if [[ -f "${ROOT}/.package-lib/zyvor-company-accept.sh" ]]; then
-  # shellcheck source=/dev/null
-  source "${ROOT}/.package-lib/zyvor-company-accept.sh"
-  require_zyvor_company_accept "${ROOT}"
-fi
 SUDO=""
 [[ "$(id -u)" -ne 0 ]] && command -v sudo &>/dev/null && SUDO=sudo
 $SUDO install -Dm755 "${ROOT}/netevd" /usr/bin/netevd
@@ -87,7 +82,7 @@ netevd ${version} — Linux amd64 client bundle
 ==============================================
 
 FILES
-  LICENSE, ZYVOR-COMPANY-TERMS.md, LEGAL-INDEX.txt, docs/legal/
+  LICENSE, LEGAL-INDEX.txt, docs/legal/
   netevd              Main daemon binary
   netevd.service      systemd unit
   config.example.yaml Sample configuration
@@ -110,7 +105,7 @@ README_EOF
 
     local req
     for req in install.sh uninstall.sh README.txt QUICKSTART.txt netevd netevd.service config.example.yaml \
-        LICENSE ZYVOR-COMPANY-TERMS.md LEGAL-INDEX.txt; do
+        LICENSE LEGAL-INDEX.txt; do
         if [[ ! -e "${stage}/${req}" ]]; then
             echo "package_netevd_client_bundle: bundle missing ${req}" >&2
             return 1
