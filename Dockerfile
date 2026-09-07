@@ -18,6 +18,7 @@ COPY Cargo.toml Cargo.lock ./
 
 # Copy source code
 COPY src ./src
+COPY benches ./benches
 COPY systemd ./systemd
 COPY examples ./examples
 

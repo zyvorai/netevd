@@ -20,7 +20,9 @@ docs/
 
 # Tests
 tests/
-benches/
+
+# benches/ is NOT excluded: Cargo.toml's [[bench]] entry means `cargo build`
+# fails to even parse the manifest if it's missing from the build context.
 
 # CI
 .github/workflows/

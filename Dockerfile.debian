@@ -20,6 +20,7 @@ COPY Cargo.toml Cargo.lock ./
 
 # Copy source
 COPY src ./src
+COPY benches ./benches
 
 # Build release binary
 RUN cargo build --release
