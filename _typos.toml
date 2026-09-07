@@ -1,0 +1,13 @@
+# typos-cli config (.github/workflows/docs.yml "Spell Check" job)
+# https://github.com/crate-ci/typos
+
+[default.extend-identifiers]
+# rtnetlink's RouteAttribute::Oif ("output interface") — a real netlink field
+# name, not a typo of "Of".
+Oif = "Oif"
+
+[default.extend-words]
+# Substring of the test fixture "val$ue" in
+# src/system/validation.rs — deliberately contains a shell metacharacter to
+# verify sanitize_env_value() rejects it, not a typo of "use"/"due".
+ue = "ue"
