@@ -6,9 +6,24 @@ system:
   backend: "systemd-networkd"  # Options: systemd-networkd, NetworkManager, dhclient
 
 monitoring:
-  interfaces:  # List of interfaces to monitor (empty = all)
+  interfaces:  # Exact names (empty = all, minus exclude)
     - eth0
     - eth1
+  match_patterns:  # Globs; empty = no extra include filter
+    - "eth*"
+    - "enp*"
+    - "wg*"
+  exclude:  # Globs; empty + selector defaults skip lo/docker/cni/veth/cilium
+    - "lo"
+    - "docker*"
+    - "veth*"
+    - "cni*"
+    - "cilium*"
+
+hooks:
+  debounce_ms: 50      # coalesce netlink bursts per (link, event)
+  timeout_sec: 30      # per-script timeout
+  max_parallel: 1      # 1 = alphabetical sequential (safe default)
 
 routing:
   policy_rules:  # Interfaces for custom routing tables

@@ -148,6 +148,13 @@ pub fn validate_state_name(state: &str) -> bool {
             | "enslaved"
             | "linger"
             | "missing"
+            | "address-added"
+            | "address-removed"
+            | "link-added"
+            | "link-removed"
+            | "mtu"
+            | "neigh"
+            | "dns"
     )
 }
 
@@ -191,6 +198,25 @@ mod tests {
         assert!(!validate_domain_name(""));
         assert!(!validate_domain_name("invalid domain"));
         assert!(!validate_domain_name("foo.*.com")); // wildcard only on first label
+    }
+
+    #[test]
+    fn test_validate_state_name_new_hook_dirs() {
+        for s in [
+            "address-added",
+            "address-removed",
+            "link-added",
+            "link-removed",
+            "mtu",
+            "neigh",
+            "dns",
+            "routable",
+        ] {
+            assert!(validate_state_name(s), "{s}");
+        }
+        assert!(!validate_state_name(""));
+        assert!(!validate_state_name("../etc"));
+        assert!(!validate_state_name("address-added;rm"));
     }
 
     #[test]

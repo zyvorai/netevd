@@ -14,11 +14,14 @@ use netlink_sys::{protocols::NETLINK_ROUTE, SocketAddr as NetlinkSocketAddr, Tok
 use rtnetlink::packet_core::NetlinkMessage;
 use rtnetlink::packet_route::RouteNetlinkMessage;
 use rtnetlink::Handle;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
+
+use crate::hooks::{HookEventV1, InterfaceSelector};
 
 use super::{
     address::get_ipv4_addresses,
@@ -72,6 +75,8 @@ pub async fn watch_addresses(
     handle: Handle,
     state: Arc<RwLock<NetworkState>>,
     routing_policy_interfaces: Vec<String>,
+    hook_selector: InterfaceSelector,
+    hook_tx: UnboundedSender<HookEventV1>,
 ) -> Result<()> {
     info!("Starting address watcher (real-time netlink events)");
 
@@ -102,18 +107,6 @@ pub async fn watch_addresses(
 
         debug!("Address {} event on interface {}", event_type, ifindex);
 
-        // Check if this interface is in our monitoring list
-        let should_monitor = {
-            let state_read = state.read().await;
-            routing_policy_interfaces
-                .iter()
-                .any(|name| state_read.get_link_index(name) == Some(ifindex))
-        };
-
-        if !should_monitor {
-            continue;
-        }
-
         // Get interface name
         let link_name = {
             let state_read = state.read().await;
@@ -122,6 +115,21 @@ pub async fn watch_addresses(
                 .cloned()
                 .unwrap_or_default()
         };
+
+        // Routing-policy interfaces get route configuration; hook-selector
+        // interfaces get address-added/address-removed hooks. A link can be
+        // both, either, or neither.
+        let is_routing_policy_interface = {
+            let state_read = state.read().await;
+            routing_policy_interfaces
+                .iter()
+                .any(|name| state_read.get_link_index(name) == Some(ifindex))
+        };
+        let hook_allowed = hook_selector.allows(&link_name);
+
+        if !is_routing_policy_interface && !hook_allowed {
+            continue;
+        }
 
         // Get current addresses for this interface
         match get_ipv4_addresses(&handle, ifindex).await {
@@ -145,45 +153,77 @@ pub async fn watch_addresses(
                         addresses.len()
                     );
 
-                    if addresses.is_empty() {
-                        info!(
-                            "No addresses on interface {}, cleaning up routing configuration",
-                            link_name
-                        );
-                        if let Err(e) = drop_configuration(&handle, &state, ifindex).await {
-                            warn!("Failed to drop configuration: {}", e);
-                        }
-
-                        // Remove old addresses from tracking
-                        last_seen_addresses.retain(|(idx, _)| *idx != ifindex);
-                    } else {
-                        // Clean up rules for removed addresses before adding new ones
-                        let removed_addrs: Vec<IpAddr> = old_addrs
+                    if hook_allowed {
+                        let added: Vec<String> = current_addrs
+                            .iter()
+                            .filter(|(_, addr)| !old_addrs.contains(&(ifindex, *addr)))
+                            .map(|(_, addr)| addr.to_string())
+                            .collect();
+                        let removed: Vec<String> = old_addrs
                             .iter()
                             .filter(|(_, addr)| !current_addrs.contains(&(ifindex, *addr)))
-                            .map(|(_, addr)| *addr)
+                            .map(|(_, addr)| addr.to_string())
                             .collect();
-                        if !removed_addrs.is_empty() {
-                            let table = calculate_table_id(ifindex);
-                            for addr in &removed_addrs {
-                                let _ = remove_routing_rules(&handle, *addr, table).await;
-                                state.write().await.routing_rules_from.remove(addr);
-                                state.write().await.routing_rules_to.remove(addr);
+                        if !added.is_empty() {
+                            let _ = hook_tx.send(
+                                HookEventV1::new("address-added", &link_name, ifindex, "netlink")
+                                    .with_addresses(added),
+                            );
+                        }
+                        if !removed.is_empty() {
+                            let _ = hook_tx.send(
+                                HookEventV1::new("address-removed", &link_name, ifindex, "netlink")
+                                    .with_addresses(removed),
+                            );
+                        }
+                    }
+
+                    if is_routing_policy_interface {
+                        if addresses.is_empty() {
+                            info!(
+                                "No addresses on interface {}, cleaning up routing configuration",
+                                link_name
+                            );
+                            if let Err(e) = drop_configuration(&handle, &state, ifindex).await {
+                                warn!("Failed to drop configuration: {}", e);
                             }
-                        }
 
-                        info!(
-                            "Configuring routing rules for interface {} with {} addresses",
-                            link_name,
-                            addresses.len()
-                        );
-                        if let Err(e) =
-                            configure_network(&handle, &state, ifindex, &addresses).await
-                        {
-                            warn!("Failed to configure network: {}", e);
-                        }
+                            // Remove old addresses from tracking
+                            last_seen_addresses.retain(|(idx, _)| *idx != ifindex);
+                        } else {
+                            // Clean up rules for removed addresses before adding new ones
+                            let removed_addrs: Vec<IpAddr> = old_addrs
+                                .iter()
+                                .filter(|(_, addr)| !current_addrs.contains(&(ifindex, *addr)))
+                                .map(|(_, addr)| *addr)
+                                .collect();
+                            if !removed_addrs.is_empty() {
+                                let table = calculate_table_id(ifindex);
+                                for addr in &removed_addrs {
+                                    let _ = remove_routing_rules(&handle, *addr, table).await;
+                                    state.write().await.routing_rules_from.remove(addr);
+                                    state.write().await.routing_rules_to.remove(addr);
+                                }
+                            }
 
-                        // Update tracking
+                            info!(
+                                "Configuring routing rules for interface {} with {} addresses",
+                                link_name,
+                                addresses.len()
+                            );
+                            if let Err(e) =
+                                configure_network(&handle, &state, ifindex, &addresses).await
+                            {
+                                warn!("Failed to configure network: {}", e);
+                            }
+
+                            // Update tracking
+                            last_seen_addresses.retain(|(idx, _)| *idx != ifindex);
+                            last_seen_addresses.extend(current_addrs);
+                        }
+                    } else {
+                        // Hook-only interface: keep the diff baseline current
+                        // without touching routing configuration.
                         last_seen_addresses.retain(|(idx, _)| *idx != ifindex);
                         last_seen_addresses.extend(current_addrs);
                     }
@@ -199,7 +239,11 @@ pub async fn watch_addresses(
 }
 
 /// Watch for route changes using real-time netlink events
-pub async fn watch_routes(_handle: Handle, state: Arc<RwLock<NetworkState>>) -> Result<()> {
+pub async fn watch_routes(
+    _handle: Handle,
+    state: Arc<RwLock<NetworkState>>,
+    hook_tx: UnboundedSender<HookEventV1>,
+) -> Result<()> {
     info!("Starting route watcher (real-time netlink events)");
 
     // Subscribe to route change notifications via multicast groups
@@ -257,25 +301,26 @@ pub async fn watch_routes(_handle: Handle, state: Arc<RwLock<NetworkState>>) -> 
             event_type, link_name, ifindex
         );
 
-        // Execute scripts for route changes
-        let script_dir = crate::system::paths::get_script_dir("routes");
-        let mut env_vars = std::collections::HashMap::new();
-        env_vars.insert("LINK".to_string(), link_name.clone());
-        env_vars.insert("LINKINDEX".to_string(), ifindex.to_string());
-        env_vars.insert("EVENT".to_string(), event_type.to_string());
-        env_vars.insert("STATE".to_string(), "routes".to_string());
-
-        if let Err(e) = crate::system::execute::execute_scripts(&script_dir, env_vars).await {
-            debug!("Failed to execute route scripts: {}", e);
-        }
+        let _ = hook_tx.send(
+            HookEventV1::new("routes", &link_name, ifindex, "netlink")
+                .with_routes_delta(vec![event_type.to_string()]),
+        );
     }
 
     Ok(())
 }
 
 /// Watch for link changes using real-time netlink events
-pub async fn watch_links(_handle: Handle, state: Arc<RwLock<NetworkState>>) -> Result<()> {
+pub async fn watch_links(
+    _handle: Handle,
+    state: Arc<RwLock<NetworkState>>,
+    hook_selector: InterfaceSelector,
+    hook_tx: UnboundedSender<HookEventV1>,
+) -> Result<()> {
     info!("Starting link watcher (real-time netlink events)");
+
+    // Track last-seen MTU per ifindex so we only fire mtu.d on real changes
+    let mut last_mtu: HashMap<u32, u32> = HashMap::new();
 
     // Subscribe to link change notifications via multicast groups
     let (connection, mut messages) = new_event_receiver(&[libc::RTNLGRP_LINK])?;
@@ -300,19 +345,36 @@ pub async fn watch_links(_handle: Handle, state: Arc<RwLock<NetworkState>>) -> R
 
         debug!("Link {} event on interface {}", event_type, ifindex);
 
-        // For link additions, extract link name from the message and update state
+        // For link additions, extract link name (and MTU) from the message and update state
         if event_type == "new" {
             use rtnetlink::packet_route::link::LinkAttribute;
-            let link_name = msg.attributes.iter().find_map(|attr| {
-                if let LinkAttribute::IfName(name) = attr {
-                    Some(name.clone())
-                } else {
-                    None
+            let mut new_name = None;
+            let mut mtu = None;
+            for attr in &msg.attributes {
+                match attr {
+                    LinkAttribute::IfName(name) => new_name = Some(name.clone()),
+                    LinkAttribute::Mtu(m) => mtu = Some(*m),
+                    _ => {}
                 }
-            });
-            if let Some(name) = link_name {
+            }
+
+            if let Some(name) = new_name {
+                let already_known = state.read().await.get_link_name(ifindex).is_some();
                 info!("Link added: {} ({})", name, ifindex);
-                state.write().await.add_link(name, ifindex);
+                state.write().await.add_link(name.clone(), ifindex);
+
+                if !already_known && hook_selector.allows(&name) {
+                    let _ = hook_tx.send(HookEventV1::new("link-added", &name, ifindex, "netlink"));
+                }
+
+                if let Some(m) = mtu {
+                    let prev = last_mtu.insert(ifindex, m);
+                    let changed = matches!(prev, Some(old) if old != m);
+                    if changed && hook_selector.allows(&name) {
+                        let _ = hook_tx
+                            .send(HookEventV1::new("mtu", &name, ifindex, "netlink").with_mtu(m));
+                    }
+                }
             } else {
                 debug!(
                     "Link added with ifindex {} but no name in attributes",
@@ -330,6 +392,17 @@ pub async fn watch_links(_handle: Handle, state: Arc<RwLock<NetworkState>>) -> R
                 .unwrap_or_default();
             info!("Link removed: {} ({})", link_name, ifindex);
             state_write.remove_link(ifindex);
+            drop(state_write);
+            last_mtu.remove(&ifindex);
+
+            if hook_selector.allows(&link_name) {
+                let _ = hook_tx.send(HookEventV1::new(
+                    "link-removed",
+                    &link_name,
+                    ifindex,
+                    "netlink",
+                ));
+            }
         }
     }
 

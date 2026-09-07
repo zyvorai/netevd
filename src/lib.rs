@@ -14,6 +14,7 @@
 
 pub mod bus;
 pub mod config;
+pub mod hooks;
 pub mod listeners;
 pub mod network;
 pub mod system;

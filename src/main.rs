@@ -16,6 +16,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use rtnetlink::Handle;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
@@ -26,6 +27,7 @@ mod bus;
 mod cli;
 mod config;
 mod filters;
+mod hooks;
 mod listeners;
 mod metrics;
 mod network;
@@ -34,6 +36,7 @@ mod system;
 use audit::AuditLogger;
 use cli::{handler, Cli, Commands};
 use config::Config;
+use hooks::HookDispatchOpts;
 use metrics::{Metrics, MetricsHandle};
 use network::{link, watcher, NetworkState};
 use std::path::PathBuf;
@@ -131,6 +134,23 @@ async fn main() -> Result<()> {
     // Get routing policy interfaces from config
     let routing_policy_interfaces = config.routing.get_routing_policy_interfaces();
 
+    // Hook contract: interface selector + dispatch service (versioned JSON,
+    // debounced, script directories under CONFIG_DIR)
+    let hook_selector = hooks::InterfaceSelector::from_lists(
+        config.monitoring.match_patterns.clone(),
+        config.monitoring.exclude.clone(),
+    )
+    .with_default_excludes();
+    let hook_opts = HookDispatchOpts {
+        config_root: PathBuf::from(system::paths::CONFIG_DIR),
+        timeout: Duration::from_secs(config.hooks.timeout_sec),
+    };
+    let (hook_tx, hook_service) = hooks::spawn_service(
+        hook_opts,
+        Duration::from_millis(config.hooks.debounce_ms),
+        metrics.clone(),
+    );
+
     // Clone handles for async tasks
     let state_addr = state.clone();
     let state_route = state.clone();
@@ -143,6 +163,11 @@ async fn main() -> Result<()> {
     let config_listener = config.clone();
     let metrics_listener = metrics.clone();
     let audit_listener = audit_logger.clone();
+    let hook_selector_addr = hook_selector.clone();
+    let hook_selector_link = hook_selector;
+    let hook_tx_addr = hook_tx.clone();
+    let hook_tx_route = hook_tx.clone();
+    let hook_tx_link = hook_tx;
 
     // Set up signal handlers
     let mut sigterm =
@@ -159,17 +184,20 @@ async fn main() -> Result<()> {
         _ = sigint.recv() => {
             info!("Received SIGINT (Ctrl+C), shutting down gracefully");
         }
-        result = watcher::watch_addresses(handle_addr, state_addr, routing_policy_interfaces) => {
+        result = watcher::watch_addresses(handle_addr, state_addr, routing_policy_interfaces, hook_selector_addr, hook_tx_addr) => {
             warn!("Address watcher exited: {:?}", result);
         }
-        result = watcher::watch_routes(handle_route, state_route) => {
+        result = watcher::watch_routes(handle_route, state_route, hook_tx_route) => {
             warn!("Route watcher exited: {:?}", result);
         }
-        result = watcher::watch_links(handle_link, state_link) => {
+        result = watcher::watch_links(handle_link, state_link, hook_selector_link, hook_tx_link) => {
             warn!("Link watcher exited: {:?}", result);
         }
         result = spawn_listener(config_listener, handle_listener, state_listener, metrics_listener, audit_listener) => {
             warn!("Backend listener exited: {:?}", result);
+        }
+        result = hook_service => {
+            warn!("Hook dispatch service exited: {:?}", result);
         }
     }
 

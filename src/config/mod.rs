@@ -40,6 +40,35 @@ pub struct Config {
 
     #[serde(default)]
     pub filters: Vec<Filter>,
+
+    #[serde(default)]
+    pub hooks: HooksConfig,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub struct HooksConfig {
+    /// Coalesce netlink bursts for this many milliseconds (0 = off).
+    #[serde(default = "default_debounce_ms")]
+    pub debounce_ms: u64,
+
+    /// Per-script timeout in seconds.
+    #[serde(default = "default_hook_timeout_sec")]
+    pub timeout_sec: u64,
+
+    /// Max scripts to run in parallel in one directory (1 = sequential).
+    #[serde(default = "default_hook_max_parallel")]
+    pub max_parallel: usize,
+}
+
+impl Default for HooksConfig {
+    fn default() -> Self {
+        Self {
+            debounce_ms: default_debounce_ms(),
+            timeout_sec: default_hook_timeout_sec(),
+            max_parallel: default_hook_max_parallel(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -57,6 +86,15 @@ pub struct SystemConfig {
 pub struct MonitoringConfig {
     #[serde(default)]
     pub interfaces: Vec<String>,
+
+    /// Glob include list (`eth*`, `wg*`). Empty = all (minus exclude).
+    #[serde(default)]
+    pub match_patterns: Vec<String>,
+
+    /// Glob exclude list. Empty = built-in virtual/CNI defaults when used
+    /// through `InterfaceSelector::with_default_excludes`.
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize, Clone)]
@@ -246,6 +284,18 @@ fn default_audit_path() -> String {
 
 fn default_retention_days() -> u32 {
     90
+}
+
+fn default_debounce_ms() -> u64 {
+    50
+}
+
+fn default_hook_timeout_sec() -> u64 {
+    30
+}
+
+fn default_hook_max_parallel() -> usize {
+    1
 }
 
 impl Config {

@@ -32,6 +32,10 @@ pub struct Metrics {
     // Netlink metrics
     pub netlink_messages_total: CounterVec,
     pub netlink_errors_total: Counter,
+
+    // Hook contract metrics
+    pub hooks_dispatched_total: CounterVec,
+    pub hooks_coalesced_total: Counter,
 }
 
 impl Metrics {
@@ -151,6 +155,22 @@ impl Metrics {
         ))?;
         registry.register(Box::new(netlink_errors_total.clone()))?;
 
+        // Hook contract metrics
+        let hooks_dispatched_total = CounterVec::new(
+            Opts::new(
+                "netevd_hooks_dispatched_total",
+                "Total number of hook events dispatched to script directories",
+            ),
+            &["event", "link"],
+        )?;
+        registry.register(Box::new(hooks_dispatched_total.clone()))?;
+
+        let hooks_coalesced_total = Counter::with_opts(Opts::new(
+            "netevd_hooks_coalesced_total",
+            "Total number of hook events coalesced by the debouncer",
+        ))?;
+        registry.register(Box::new(hooks_coalesced_total.clone()))?;
+
         Ok(Self {
             registry,
             uptime_seconds,
@@ -167,6 +187,8 @@ impl Metrics {
             dbus_errors_total,
             netlink_messages_total,
             netlink_errors_total,
+            hooks_dispatched_total,
+            hooks_coalesced_total,
         })
     }
 

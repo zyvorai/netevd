@@ -125,6 +125,14 @@ monitoring:
   interfaces:                    # empty = monitor all
     - eth0
     - eth1
+  match_patterns:                # globs for address/link/mtu hooks; empty = all
+    - "eth*"
+  exclude:                       # globs to skip; empty = built-in virtual/CNI defaults
+    - "veth*"
+
+hooks:
+  debounce_ms: 50                # coalesce netlink bursts per (link, event)
+  timeout_sec: 30                # per-script timeout
 
 routing:
   policy_rules:                  # auto-create per-interface routing tables
@@ -157,8 +165,15 @@ Scripts are organized by the event that triggers them:
 | `disconnected.d/` | Device disconnected | NetworkManager |
 | `manager.d/` | Manager state change | All |
 | `routes.d/` | Routing table change | All |
+| `address-added.d/` | IP address added to an interface | All (netlink, backend-independent) |
+| `address-removed.d/` | IP address removed from an interface | All (netlink, backend-independent) |
+| `link-added.d/` | Interface appears (veth, tap, WireGuard, ...) | All (netlink, backend-independent) |
+| `link-removed.d/` | Interface disappears | All (netlink, backend-independent) |
+| `mtu.d/` | Interface MTU changes | All (netlink, backend-independent) |
 
 Scripts run in alphabetical order. Use numeric prefixes (`01-`, `02-`) to control ordering. Non-zero exit codes are logged but don't block other scripts.
+
+The `address-*`, `link-*`, and `mtu` hooks fire per interface based on `monitoring.match_patterns` / `monitoring.exclude` (glob lists, defaulting to excluding `lo`/`docker*`/`veth*`/`cni*`/`cilium*`), independent of whether that interface is in `routing.policy_rules`. They're also debounced (`hooks.debounce_ms`, default 50ms) so a burst of netlink events collapses into one script run per `(interface, event)` pair. See [docs/hooks-contract.md](docs/hooks-contract.md) for the full JSON schema and config keys.
 
 ### Environment Variables
 
@@ -174,6 +189,7 @@ Every script receives:
 
 **systemd-networkd** adds `$JSON` with full interface data (MTU, driver, DNS, routes).
 **dhclient** adds `$DHCP_ADDRESS`, `$DHCP_GATEWAY`, `$DHCP_DNS`, `$DHCP_DOMAIN`, `$DHCP_HOSTNAME`.
+**The netlink-driven hooks** (`address-*`, `link-*`, `mtu`, `routes`) always set `$JSON` to a versioned `netevd.event.v1` payload (`$BACKEND` is `netlink` for these).
 
 ## Automatic Policy Routing
 

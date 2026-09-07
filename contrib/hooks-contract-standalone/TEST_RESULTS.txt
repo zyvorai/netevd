@@ -1,0 +1,25 @@
+netevd hook contract tests
+date: 2026-09-07
+runner: rustc 1.75.0 --edition 2021 --test src/contract_std.rs
+
+running 8 tests
+test tests::burst_20_to_1 ... ok
+test tests::dangerous_link_rejected ... ok
+test tests::different_keys_not_merged ... ok
+test tests::glob_and_defaults ... ok
+test tests::hanging_script_timeout ... ok
+test tests::json_schema_v1 ... ok
+test tests::script_gets_env_and_json ... ok
+test tests::states_accepted ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+Coverage of the PR-1 contract:
+- new hook state names accepted, path traversal rejected
+- netevd.event.v1 JSON + legacy env (LINK/STATE/EVENT/ADDRESSES/JSON)
+- glob match + default excludes (lo/docker/veth/cilium/cni)
+- 20 netlink-style bursts coalesce to 1 (last payload wins)
+- distinct (link,event) keys stay separate
+- real /bin/sh hook receives env + JSON
+- hanging script is killed before 5s
+- shell-metacharacter interface names rejected

@@ -21,8 +21,25 @@ const SCRIPT_TIMEOUT: Duration = Duration::from_secs(30);
 
 use crate::system::validation;
 
+/// Execute all scripts in a directory with a caller-supplied timeout.
+pub async fn execute_scripts_with_timeout(
+    directory: &str,
+    env_vars: HashMap<String, String>,
+    timeout: Duration,
+) -> Result<()> {
+    execute_scripts_inner(directory, env_vars, timeout).await
+}
+
 /// Execute all scripts in a directory with provided environment variables
 pub async fn execute_scripts(directory: &str, env_vars: HashMap<String, String>) -> Result<()> {
+    execute_scripts_inner(directory, env_vars, SCRIPT_TIMEOUT).await
+}
+
+async fn execute_scripts_inner(
+    directory: &str,
+    env_vars: HashMap<String, String>,
+    timeout: Duration,
+) -> Result<()> {
     let dir_path = Path::new(directory);
 
     if !dir_path.exists() {
@@ -80,7 +97,7 @@ pub async fn execute_scripts(directory: &str, env_vars: HashMap<String, String>)
 
     // Execute each script
     for script_path in scripts {
-        match execute_script(&script_path, &env_vars).await {
+        match execute_script(&script_path, &env_vars, timeout).await {
             Ok(_) => {
                 info!("Successfully executed script: {:?}", script_path);
             }
@@ -97,7 +114,11 @@ pub async fn execute_scripts(directory: &str, env_vars: HashMap<String, String>)
 ///
 /// All environment variable values are validated and sanitized to prevent
 /// command injection attacks. Dangerous values are rejected with warnings.
-async fn execute_script(script_path: &Path, env_vars: &HashMap<String, String>) -> Result<()> {
+async fn execute_script(
+    script_path: &Path,
+    env_vars: &HashMap<String, String>,
+    timeout: Duration,
+) -> Result<()> {
     debug!("Executing script: {:?}", script_path);
 
     let mut cmd = Command::new(script_path);
@@ -171,13 +192,13 @@ async fn execute_script(script_path: &Path, env_vars: &HashMap<String, String>) 
         .spawn()
         .with_context(|| format!("Failed to spawn script: {:?}", script_path))?;
 
-    let output = tokio::time::timeout(SCRIPT_TIMEOUT, child.wait_with_output())
+    let output = tokio::time::timeout(timeout, child.wait_with_output())
         .await
         .map_err(|_| {
             anyhow::anyhow!(
                 "Script {:?} timed out after {}s (process killed)",
                 script_path,
-                SCRIPT_TIMEOUT.as_secs()
+                timeout.as_secs()
             )
         })?
         .with_context(|| format!("Failed to execute script: {:?}", script_path))?;
