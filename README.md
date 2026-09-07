@@ -46,7 +46,7 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into a sin
 ### GitHub Release (recommended)
 
 ```bash
-curl -LO https://github.com/zyvorai/netevd/releases/download/v0.3.2/netevd-0.3.2-linux-amd64.tar.gz
+curl -LO https://github.com/zyvorai/netevd/releases/download/v0.4.0/netevd-0.4.0-linux-amd64.tar.gz
 tar xzf netevd-*-linux-amd64.tar.gz && cd netevd-*-linux-amd64
 sudo ./install.sh
 sudo systemctl enable --now netevd
