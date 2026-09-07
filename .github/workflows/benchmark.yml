@@ -14,6 +14,10 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    # Needed for github-action-benchmark's auto-push to gh-pages below — the
+    # repo's default GITHUB_TOKEN permissions are read-only.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
 

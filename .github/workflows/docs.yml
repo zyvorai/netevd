@@ -13,6 +13,10 @@ jobs:
   docs:
     name: Build Documentation
     runs-on: ubuntu-latest
+    # Needed to push the generated rustdoc HTML to gh-pages below — the repo's
+    # default GITHUB_TOKEN permissions are read-only.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
 
