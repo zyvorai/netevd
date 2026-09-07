@@ -13,13 +13,14 @@
   <a href="https://zyvor.dev/contact?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Contact_sales-22C55E?style=flat-square" alt="Contact"/></a>
 </p>
 
-**netevd** is a network event daemon that watches your Linux network interfaces and runs scripts when things change. Think of it as systemd path units, but purpose-built for networking: when an interface gets an IP, loses its link, or routes change, netevd executes your scripts with full context about what happened.
+**netevd** runs your scripts the moment something changes on a Linux network interface — link up/down, a new IP, a route change — instead of you writing a NetworkManager dispatcher script, a systemd-networkd `ExecStartPost` hack, or a cron job that polls `ip addr` every few seconds.
 
-It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into a single, unified event system -- with automatic policy routing, a REST API, Prometheus metrics, and a defense-in-depth security model.
+It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one event system, with sub-100ms netlink-driven latency, automatic policy routing for multi-homed hosts, a REST API, Prometheus metrics, and a defense-in-depth security model.
 
 ## Table of contents
 
 - [Why netevd?](#why-netevd)
+- [Instead of...](#instead-of)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
 - [Configuration](#configuration)
@@ -40,6 +41,18 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into a sin
 | Want real-time network events, not polling | Netlink multicast: sub-100ms latency, zero polling |
 | Need to support multiple network managers | One daemon handles networkd, NetworkManager, and dhclient |
 | Security concerns with network daemons | Privilege separation, CAP_NET_ADMIN only, input validation |
+
+## Instead of...
+
+| What people currently do | Why it's not enough |
+|---|---|
+| NetworkManager `dispatcher.d/` scripts | NetworkManager only — nothing for systemd-networkd or dhclient hosts |
+| systemd-networkd unit `ExecStartPost=` | Fires once at start, not on later link/address/route changes |
+| `ifupdown` `/etc/network/if-up.d/` | Debian/Ubuntu-only; ifupdown is legacy on most current distros |
+| Cron job polling `ip addr` / `ip route` | Seconds of latency, wastes CPU, still needs you to write the diffing logic |
+| Custom netlink code in your own daemon | You end up re-implementing debounce, backend detection, and safe script execution — the parts netevd already did |
+
+netevd replaces all of these with one daemon: real netlink events (sub-100ms), one script contract across all three backends, and validated input so your scripts don't need to sanitize `$LINK`/`$ADDRESSES` themselves.
 
 ## Quick Start
 
