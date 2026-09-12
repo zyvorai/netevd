@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_interface","get_status","health_check","list_events","list_interfaces","list_routes","list_rules","metrics","reload_config"],"type":["AppState"]};

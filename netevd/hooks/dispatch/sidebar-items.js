@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["dispatch_event","hook_dir"],"struct":["HookDispatchOpts"]};

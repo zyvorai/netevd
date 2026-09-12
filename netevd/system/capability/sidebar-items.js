@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["apply_capabilities","clear_keep_capabilities","has_capability","keep_capabilities"]};
