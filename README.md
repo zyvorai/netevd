@@ -29,6 +29,7 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one e
 - [Security](#security)
 - [Performance](#performance)
 - [REST API](#rest-api)
+- [FAQ](docs/FAQ.md) · [Troubleshooting](docs/user/getting-started.md#troubleshooting)
 - [Enterprise](#enterprise)
 - [License](#license)
 
