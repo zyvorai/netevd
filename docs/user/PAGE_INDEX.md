@@ -1,4 +1,8 @@
-# netevd — Complete page index
+---
+hero:
+  eyebrow: USER GUIDE
+  title: netevd — Complete page index
+---
 
 Every primary navigable dashboard route.
 

@@ -1,4 +1,15 @@
-# Hook contract (netevd.event.v1)
+---
+hero:
+  eyebrow: HOOK CONTRACT
+  title: Hook contract (netevd.event.v1)
+  lead: "Reference for the src/hooks module: the versioned JSON event payload, the hook directories it dispatches to, and the config keys that control debouncing and interface selection."
+  highlights:
+    - {value: "14", label: "hook directories"}
+    - {value: "v1", label: "event schema version"}
+    - {value: "50ms", label: "default debounce window"}
+    - {value: "30s", label: "default script timeout"}
+    - {value: "2", label: "hook metrics exported"}
+---
 
 Reference for the `src/hooks` module: the versioned JSON event payload, the
 new hook directories it dispatches to, and the config keys that control
@@ -25,6 +36,28 @@ extras noted below).
 `neigh.d` and `dns.d` are accepted as valid state names (for forward
 compatibility) but nothing emits them yet — see `ROADMAP.md` for why they're
 deferred.
+
+## Take a closer look
+
+=== "Link"
+
+    `link-added.d` / `link-removed.d` fire only on a genuine interface add or
+    remove — not on every attribute update — for interfaces like veth, tap,
+    or WireGuard devices appearing and disappearing. `mtu.d` fires only when
+    MTU actually changes; the first sighting just seeds the baseline.
+
+=== "Address"
+
+    `address-added.d` / `address-removed.d` fire per interface matched by
+    `monitoring.match_patterns` / `exclude`, independent of whether that
+    interface is listed under `routing.policy_rules`.
+
+=== "Route"
+
+    `routes.d` reacts to routing-table changes — default-route moves, VPN
+    injection, or policy-table updates — detected by the netlink route
+    watcher. It's versioned and debounced, with `$ROUTES_DELTA` delivered via
+    `$JSON`.
 
 ## JSON schema (`netevd.event.v1`)
 

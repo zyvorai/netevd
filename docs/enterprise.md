@@ -1,4 +1,8 @@
-# Community Edition vs Enterprise
+---
+hero:
+  eyebrow: ENTERPRISE
+  title: Community Edition vs Enterprise
+---
 
 | | Community Edition (this repo) | Enterprise ([zyvor.dev](https://zyvor.dev/?utm_source=github&utm_medium=netevd)) |
 |---|------------------------------|-------------------------------------------------------------------------------------|

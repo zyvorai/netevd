@@ -1,4 +1,8 @@
-# Getting started
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Getting started
+---
 
 ## Prerequisites
 

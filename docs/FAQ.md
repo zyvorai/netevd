@@ -1,4 +1,8 @@
-# FAQ
+---
+hero:
+  eyebrow: FAQ
+  title: FAQ
+---
 
 Questions people evaluating netevd actually ask. For "why netevd over X",
 see the README's [Instead of...](https://github.com/zyvorai/netevd#instead-of) section — this

@@ -1,4 +1,8 @@
-# netevd — User Documentation
+---
+hero:
+  eyebrow: USER GUIDE
+  title: netevd — User Documentation
+---
 
 **netevd** is a Netlink-first Linux network event daemon (Rust). It watches carrier, address, route, and manager state — then runs your scripts with rich context. It also maintains per-interface policy routing on multi-homed hosts and exposes REST + Prometheus on `:9090` / `:9091`.
 

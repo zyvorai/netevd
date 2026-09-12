@@ -1,4 +1,8 @@
-# Hook: manager / NetworkManager
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'Hook: manager / NetworkManager'
+---
 
 ## Purpose
 

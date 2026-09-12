@@ -1,4 +1,8 @@
-# Common workflows
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Common workflows
+---
 
 ## A. First routable notify
 

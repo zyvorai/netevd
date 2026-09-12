@@ -1,4 +1,8 @@
-# Hook: routable
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'Hook: routable'
+---
 
 ## Purpose
 

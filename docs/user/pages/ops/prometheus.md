@@ -1,4 +1,8 @@
-# Prometheus metrics (:9091)
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Prometheus metrics (:9091)
+---
 
 ## Purpose
 

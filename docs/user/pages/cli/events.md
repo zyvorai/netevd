@@ -1,4 +1,8 @@
-# CLI: events
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'CLI: events'
+---
 
 ## Purpose
 

@@ -1,4 +1,8 @@
-# Hook: carrier / no-carrier
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'Hook: carrier / no-carrier'
+---
 
 ## Purpose
 

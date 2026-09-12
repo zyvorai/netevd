@@ -1,4 +1,8 @@
-# CLI: list / show
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'CLI: list / show'
+---
 
 ## Purpose
 

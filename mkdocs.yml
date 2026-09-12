@@ -8,21 +8,25 @@ docs_dir: docs
 site_dir: site
 theme:
   name: material
-  logo: material/lan-connect
-  favicon: material/lan-connect
+  logo: assets/readme/zyvor-logo.svg
+  favicon: assets/readme/zyvor-logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep orange
-      accent: orange
+      primary: blue
+      accent: blue
       toggle: {icon: material/brightness-7, name: Switch to dark mode}
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep orange
-      accent: orange
+      primary: blue
+      accent: blue
       toggle: {icon: material/brightness-4, name: Switch to light mode}
   features: [navigation.tabs, navigation.sections, navigation.top, navigation.footer, content.code.copy, search.suggest, search.highlight, toc.follow]
 plugins: [search]
+hooks:
+  - docs/overrides/hooks.py
+extra_css:
+  - stylesheets/apple-glass.css
 markdown_extensions:
   - admonition
   - attr_list

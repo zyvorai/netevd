@@ -1,4 +1,8 @@
-# netevd — next features (PR pack)
+---
+hero:
+  eyebrow: ROADMAP
+  title: netevd — next features (PR pack)
+---
 
 Repo: https://github.com/zyvorai/netevd  
 Status checked: 2026-09-07 — no open PRs, no open issues on zyvorai/netevd.  

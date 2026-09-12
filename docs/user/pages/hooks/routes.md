@@ -1,4 +1,8 @@
-# Hook: routes
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'Hook: routes'
+---
 
 ## Purpose
 

@@ -1,4 +1,8 @@
-# CLI: status
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'CLI: status'
+---
 
 ## Purpose
 

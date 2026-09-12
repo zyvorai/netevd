@@ -1,4 +1,8 @@
-# Configuration YAML
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Configuration YAML
+---
 
 ## Purpose
 

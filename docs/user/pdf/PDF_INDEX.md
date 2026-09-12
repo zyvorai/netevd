@@ -1,4 +1,8 @@
-# netevd user PDFs
+---
+hero:
+  eyebrow: USER GUIDE
+  title: netevd user PDFs
+---
 
 Generated: 2026-08-29
 

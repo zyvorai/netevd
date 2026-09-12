@@ -1,4 +1,8 @@
-# REST API (:9090)
+---
+hero:
+  eyebrow: USER GUIDE
+  title: REST API (:9090)
+---
 
 ## Purpose
 

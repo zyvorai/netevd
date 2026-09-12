@@ -1,4 +1,8 @@
-# ZyvorAI Labs — netevd corporate reference
+---
+hero:
+  eyebrow: LEGAL
+  title: ZyvorAI Labs — netevd corporate reference
+---
 
 **Source code:** [LICENSE](https://github.com/zyvorai/netevd/blob/main/LICENSE) (Apache-2.0)
 

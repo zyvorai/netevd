@@ -1,4 +1,8 @@
-# Using the operator surfaces
+---
+hero:
+  eyebrow: USER GUIDE
+  title: Using the operator surfaces
+---
 
 netevd has **no shipped browser console** for day-2 work. Operators use hook directories, the CLI, REST/Prometheus, and systemd journals. A static dashboard HTML exists in the repo for future embedding but is not the primary surface.
 

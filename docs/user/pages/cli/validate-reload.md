@@ -1,4 +1,8 @@
-# CLI: validate / reload / test
+---
+hero:
+  eyebrow: USER GUIDE
+  title: 'CLI: validate / reload / test'
+---
 
 ## Purpose
 
