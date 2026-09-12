@@ -30,3 +30,4 @@ bin/
 # MkDocs
 .venv-docs/
 /site/
+__pycache__/
