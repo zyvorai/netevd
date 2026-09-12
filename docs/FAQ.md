@@ -1,17 +1,17 @@
 # FAQ
 
 Questions people evaluating netevd actually ask. For "why netevd over X",
-see the README's [Instead of...](../README.md#instead-of) section — this
+see the README's [Instead of...](https://github.com/zyvorai/netevd#instead-of) section — this
 FAQ covers what that section doesn't.
 
 ## Licensing & cost
 
 **Is the Community Edition really free?** Yes. Apache-2.0 — use, modify,
 and run it for personal, lab, and commercial production use at no charge.
-See the README's [License](../README.md#license) section.
+See the README's [License](https://github.com/zyvorai/netevd#license) section.
 
 **What's the difference between Community and Enterprise?** See the
-README's [Enterprise](../README.md#enterprise) section and
+README's [Enterprise](https://github.com/zyvorai/netevd#enterprise) section and
 [`docs/enterprise.md`](enterprise.md) for the full comparison table —
 briefly: Community is the self-hosted daemon with GitHub Issues support;
 Enterprise adds SLA-backed support and the broader HyperSDK
@@ -21,7 +21,7 @@ platform (`netctl`, `cloud-netconfig`).
 
 **What if I find a bug?** Open a GitHub issue.
 
-**What if I find a security vulnerability?** See [`SECURITY.md`](../SECURITY.md)
+**What if I find a security vulnerability?** See [`SECURITY.md`](https://github.com/zyvorai/netevd/blob/main/SECURITY.md)
 for private reporting to legal@zyvor.dev — response SLA is documented
 there (initial response within 48 hours; critical fixes within 7 days).
 

@@ -7,4 +7,4 @@ Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 SPDX-License-Identifier: Apache-2.0
 ```
 
-Full license: [LICENSE](../LICENSE).
+Full license: [LICENSE](https://github.com/zyvorai/netevd/blob/main/LICENSE).

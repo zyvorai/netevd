@@ -26,3 +26,7 @@ bin/
 /_build/
 
 .docs-tools/
+
+# MkDocs
+.venv-docs/
+/site/

@@ -1,0 +1,75 @@
+site_name: netevd
+site_description: A Netlink-first Linux network event daemon — run scripts the moment link, address, or route state changes.
+site_url: https://zyvorai.github.io/netevd/
+repo_url: https://github.com/zyvorai/netevd
+repo_name: zyvorai/netevd
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+theme:
+  name: material
+  logo: material/lan-connect
+  favicon: material/lan-connect
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: orange
+      toggle: {icon: material/brightness-7, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle: {icon: material/brightness-4, name: Switch to light mode}
+  features: [navigation.tabs, navigation.sections, navigation.top, navigation.footer, content.code.copy, search.suggest, search.highlight, toc.follow]
+plugins: [search]
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - {name: mermaid, class: mermaid, format: !!python/name:pymdownx.superfences.fence_code_format }
+  - pymdownx.tabbed: {alternate_style: true}
+  - pymdownx.tasklist: {custom_checkbox: true}
+  - tables
+  - toc: {permalink: true}
+nav:
+  - Home: index.md
+  - FAQ: FAQ.md
+  - Enterprise: enterprise.md
+  - Roadmap: ROADMAP.md
+  - Hook Contract: hooks-contract.md
+  - User Guide:
+      - Overview: user/README.md
+      - Getting Started: user/getting-started.md
+      - Using the Operator Surfaces: user/using-the-dashboard.md
+      - Admin Basics: user/admin-basics.md
+      - Common Workflows: user/workflows.md
+      - Complete Page Index: user/PAGE_INDEX.md
+      - Page-by-Page Guides:
+          - Overview: user/pages/README.md
+          - CLI:
+              - Events: user/pages/cli/events.md
+              - List / Show: user/pages/cli/list-show.md
+              - Status: user/pages/cli/status.md
+              - Validate / Reload: user/pages/cli/validate-reload.md
+          - Hooks:
+              - Carrier / No-Carrier: user/pages/hooks/carrier.md
+              - Manager: user/pages/hooks/manager.md
+              - Routable: user/pages/hooks/routable.md
+              - Routes: user/pages/hooks/routes.md
+          - Ops:
+              - Configuration YAML: user/pages/ops/config-yaml.md
+              - Prometheus Metrics: user/pages/ops/prometheus.md
+              - REST API: user/pages/ops/rest-api.md
+      - Printable PDFs: user/pdf/PDF_INDEX.md
+  - Legal:
+      - Overview: legal/README.md
+      - Corporate Reference: legal/CORPORATE.md
+      - Trademark Notice: legal/TRADEMARK-NOTICE.md
+  - License Headers: LICENSE_HEADERS.md
+extra:
+  social:
+    - {icon: fontawesome/brands/github, link: https://github.com/zyvorai/netevd}

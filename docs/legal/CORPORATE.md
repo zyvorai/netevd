@@ -1,6 +1,6 @@
 # ZyvorAI Labs — netevd corporate reference
 
-**Source code:** [LICENSE](../../LICENSE) (Apache-2.0)
+**Source code:** [LICENSE](https://github.com/zyvorai/netevd/blob/main/LICENSE) (Apache-2.0)
 
 | Field | Value |
 |-------|--------|
