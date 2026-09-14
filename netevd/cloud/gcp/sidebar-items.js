@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FirewallAction"],"struct":["AccessConfig","GcpClient","InstanceMetadata","NetworkInterface"]};

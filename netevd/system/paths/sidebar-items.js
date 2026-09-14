@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CONFIG_DIR","CONFIG_FILE","DHCLIENT_LEASE_PATH","SYSTEMD_NETIF_LINKS","SYSTEMD_NETIF_STATE"],"fn":["get_script_dir"]};

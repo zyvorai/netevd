@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["build_link_describe_json"],"struct":["LinkDescribe"]};
