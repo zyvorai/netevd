@@ -476,9 +476,9 @@ dependencies = [
 
 [[package]]
 name = "configparser"
-version = "1.0.0"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe1d7dcda7d1da79e444bdfba1465f2f849a58b07774e1df473ee77030cb47a7"
+checksum = "031ad3d167622974ed636505ae4556267ed4aa2aea0464122fa6bc9698a32825"
 
 [[package]]
 name = "core-foundation-sys"
@@ -1031,9 +1031,9 @@ dependencies = [
 
 [[package]]
 name = "ini"
-version = "1.3.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a9271a5dfd4228fa56a78d7508a35c321639cc71f783bb7a5723552add87bce"
+checksum = "2c22ec49aaf2b6ff1a7e7dd5e865a39313d86a62730154d96e199ab237661ef7"
 dependencies = [
  "configparser",
 ]
