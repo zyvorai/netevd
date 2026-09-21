@@ -1,7 +1,10 @@
 # Copyright 2026 Zyvor AI Labs · https://zyvor.dev
 # SPDX-License-Identifier: Apache-2.0
-# Debian-based Docker image for netevd
-# Larger size but better compatibility
+# glibc Docker image for netevd.
+# The runtime is Wolfi, not Debian: bookworm and trixie still ship
+# essential packages (util-linux, perl, ncurses, libsystemd) with
+# high-severity advisories and no vendor fix. Wolfi is rebuilt when
+# fixes exist, and the image Trivy scans for this tag is clean.
 
 # Build stage
 FROM rust:1-bookworm as builder
@@ -25,20 +28,20 @@ COPY benches ./benches
 # Build release binary
 RUN cargo build --release
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Runtime stage. glibc userspace with a shell for hook scripts.
+FROM cgr.dev/chainguard/wolfi-base:latest
 
-# Install runtime dependencies
-RUN apt-get update && \
-    apt-get install -y \
-    libdbus-1-3 \
+# bash: hook scripts. iproute2: ip(8) for those scripts.
+# libcap-utils: setcap. ca-certificates ships in the base image.
+# dbus and systemd are not installed; netevd speaks D-Bus with zbus
+# to the host broker.
+RUN apk add --no-cache \
+    bash \
     iproute2 \
-    systemd \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    libcap-utils
 
-# Create netevd user
-RUN useradd -r -M -s /usr/sbin/nologin -d /nonexistent netevd
+# Create netevd user. Wolfi busybox has no nologin applet.
+RUN adduser -D -H -s /bin/false netevd
 
 # Copy binary from builder
 COPY --from=builder /build/target/release/netevd /usr/bin/netevd

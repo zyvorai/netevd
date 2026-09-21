@@ -25,18 +25,16 @@ COPY examples ./examples
 # Build release binary
 RUN cargo build --release --locked
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Runtime stage. Same Wolfi glibc base as Dockerfile.debian so a
+# default `docker build` does not ship unfixed Debian advisories.
+FROM cgr.dev/chainguard/wolfi-base:latest
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    iproute2 \
-    dbus \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    bash \
+    iproute2
 
-# Create netevd user
-RUN useradd --system --no-create-home --shell /usr/sbin/nologin netevd
+# Create netevd user. Wolfi busybox has no nologin applet.
+RUN adduser -D -H -s /bin/false netevd
 
 # Copy binary from builder
 COPY --from=builder /build/target/release/netevd /usr/bin/netevd

@@ -26,13 +26,15 @@ ENV RUSTFLAGS="-C target-feature=+crt-static"
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Runtime stage
-FROM alpine:latest
+FROM alpine:3.23
 
 # Install minimal runtime dependencies
-RUN apk add --no-cache \
-    dbus \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+    bash \
     iproute2 \
-    ca-certificates
+    ca-certificates \
+    libcap
 
 # Create netevd user
 RUN adduser -D -H -s /sbin/nologin netevd
