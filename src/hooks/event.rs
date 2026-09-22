@@ -32,6 +32,8 @@ pub const HOOK_STATES: &[&str] = &[
     "mtu",
     "neigh",
     "dns",
+    "drops",
+    "tcp-retransmit",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -57,6 +59,21 @@ pub struct HookEventV1 {
     pub gateway: Option<String>,
     #[serde(default)]
     pub dns: Vec<String>,
+    /// eBPF-sourced: kfree_skb reason name (observe-only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drop_reason: Option<String>,
+    /// eBPF-sourced: kernel symbol / tracepoint location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drop_location: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protocol: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sport: Option<u16>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dport: Option<u16>,
+    /// How many raw kernel events were coalesced into this hook.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u64>,
 }
 
 impl HookEventV1 {
@@ -76,6 +93,12 @@ impl HookEventV1 {
             routes_delta: Vec::new(),
             gateway: None,
             dns: Vec::new(),
+            drop_reason: None,
+            drop_location: None,
+            protocol: None,
+            sport: None,
+            dport: None,
+            count: None,
         }
     }
 
@@ -132,6 +155,24 @@ impl HookEventV1 {
         }
         if !self.dns.is_empty() {
             env.insert("DNS".into(), self.dns.join(" "));
+        }
+        if let Some(r) = &self.drop_reason {
+            env.insert("DROP_REASON".into(), r.clone());
+        }
+        if let Some(loc) = &self.drop_location {
+            env.insert("DROP_LOCATION".into(), loc.clone());
+        }
+        if let Some(proto) = &self.protocol {
+            env.insert("PROTOCOL".into(), proto.clone());
+        }
+        if let Some(p) = self.sport {
+            env.insert("SPORT".into(), p.to_string());
+        }
+        if let Some(p) = self.dport {
+            env.insert("DPORT".into(), p.to_string());
+        }
+        if let Some(c) = self.count {
+            env.insert("COUNT".into(), c.to_string());
         }
         if let Some(mtu) = self.mtu {
             env.insert("MTU".into(), mtu.to_string());

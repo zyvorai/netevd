@@ -63,6 +63,14 @@ mod tests {
             hook_dir(root, "mtu").unwrap(),
             PathBuf::from("/etc/netevd/mtu.d")
         );
+        assert_eq!(
+            hook_dir(root, "drops").unwrap(),
+            PathBuf::from("/etc/netevd/drops.d")
+        );
+        assert_eq!(
+            hook_dir(root, "tcp-retransmit").unwrap(),
+            PathBuf::from("/etc/netevd/tcp-retransmit.d")
+        );
         assert!(hook_dir(root, "not-a-state").is_none());
         assert!(hook_dir(root, "../etc").is_none());
     }

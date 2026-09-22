@@ -26,3 +26,4 @@ pub mod cli;
 pub mod cloud;
 pub mod filters;
 pub mod metrics;
+pub mod ebpf;

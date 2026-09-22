@@ -10,20 +10,26 @@ use std::collections::HashSet;
 
 /// Apply necessary capabilities for network operations
 ///
-/// Only CAP_NET_ADMIN is needed for:
-/// - Managing routing tables and policy rules
-/// - Configuring network interfaces
-/// - Accessing netlink sockets
+/// - CAP_NET_ADMIN: routing tables, policy rules, netlink, interface config
+/// - CAP_BPF / CAP_PERFMON: observe-only eBPF load/attach (kernel 5.8+)
+/// - CAP_DAC_READ_SEARCH: open root-only tracefs to resolve tracepoint IDs
 ///
-/// NOTE: CAP_SYS_ADMIN has been removed as it's overly broad and provides
-/// unnecessary privileges. CAP_NET_ADMIN is sufficient for all network
-/// configuration operations this daemon performs.
+/// CAP_SYS_ADMIN is intentionally omitted (too broad).
 ///
 /// This should be called after privilege dropping.
 pub fn apply_capabilities() -> Result<()> {
-    // Only request CAP_NET_ADMIN - sufficient for all network operations
     let mut capabilities = HashSet::new();
     capabilities.insert(Capability::CAP_NET_ADMIN);
+    // Include BPF / tracefs caps when present in the bounding set (systemd unit ships them).
+    for cap in [
+        Capability::CAP_BPF,
+        Capability::CAP_PERFMON,
+        Capability::CAP_DAC_READ_SEARCH,
+    ] {
+        if caps::has_cap(None, CapSet::Bounding, cap).unwrap_or(false) {
+            capabilities.insert(cap);
+        }
+    }
 
     // Set in permitted set (capability pool we can draw from)
     caps::set(None, CapSet::Permitted, &capabilities)

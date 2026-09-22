@@ -43,6 +43,10 @@ pub struct Config {
 
     #[serde(default)]
     pub hooks: HooksConfig,
+
+    /// Observe-only kernel events via eBPF tracepoints (opt-in).
+    #[serde(default)]
+    pub ebpf: EbpfConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -59,6 +63,56 @@ pub struct HooksConfig {
     /// Max scripts to run in parallel in one directory (1 = sequential).
     #[serde(default = "default_hook_max_parallel")]
     pub max_parallel: usize,
+}
+
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub struct EbpfConfig {
+    /// Master switch. Default off — netlink remains the only event source.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Attach `kfree_skb` / `consume_skb` and emit `drops.d` hooks.
+    #[serde(default = "default_true")]
+    pub drops: bool,
+    /// Attach `tcp_retransmit_skb` and emit `tcp-retransmit.d` hooks.
+    #[serde(default)]
+    pub tcp_retransmit: bool,
+    /// Coalesce identical (ifindex, reason, proto, ports) samples.
+    #[serde(default = "default_ebpf_debounce_ms")]
+    pub debounce_ms: u64,
+    /// Minimum samples in a debounce window before a hook fires.
+    #[serde(default = "default_ebpf_min_count")]
+    pub min_count: u64,
+    /// Path to pinned / compiled BPF object. Empty = look next to the binary
+    /// then `/usr/lib/netevd/netevd-ebpf.o`.
+    #[serde(default)]
+    pub object_path: String,
+}
+
+impl Default for EbpfConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            drops: true,
+            tcp_retransmit: false,
+            debounce_ms: default_ebpf_debounce_ms(),
+            min_count: default_ebpf_min_count(),
+            object_path: String::new(),
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_ebpf_debounce_ms() -> u64 {
+    250
+}
+
+fn default_ebpf_min_count() -> u64 {
+    1
 }
 
 impl Default for HooksConfig {
@@ -262,9 +316,6 @@ fn default_backend() -> String {
     DEFAULT_BACKEND.to_string()
 }
 
-fn default_true() -> bool {
-    true
-}
 
 fn default_bind_address() -> String {
     "127.0.0.1".to_string()

@@ -26,6 +26,7 @@ mod audit;
 mod bus;
 mod cli;
 mod config;
+mod ebpf;
 mod filters;
 mod hooks;
 mod listeners;
@@ -146,10 +147,11 @@ async fn main() -> Result<()> {
         timeout: Duration::from_secs(config.hooks.timeout_sec),
     };
     let (hook_tx, hook_service) = hooks::spawn_service(
-        hook_opts,
+        hook_opts.clone(),
         Duration::from_millis(config.hooks.debounce_ms),
         metrics.clone(),
     );
+    ebpf::spawn(config.clone(), state.clone(), hook_opts.clone());
 
     // Clone handles for async tasks
     let state_addr = state.clone();

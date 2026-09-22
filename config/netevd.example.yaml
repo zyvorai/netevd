@@ -86,3 +86,13 @@ filters:
       backend: "NetworkManager"
       event_type: "activated"
     action: log
+
+# Observe-only eBPF (off by default). Requires `cargo build --features ebpf`
+# plus netevd-ebpf.o from `make -C ebpf`. Does not filter or rewrite packets.
+ebpf:
+  enabled: false
+  drops: true
+  tcp_retransmit: false
+  debounce_ms: 250
+  min_count: 8
+  object_path: ""

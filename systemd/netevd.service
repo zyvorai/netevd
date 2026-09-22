@@ -24,9 +24,11 @@ User=netevd
 Group=netevd
 
 # Capabilities
-# CAP_NET_ADMIN: Required for netlink operations, routing tables, and policy rules
-AmbientCapabilities=CAP_NET_ADMIN
-CapabilityBoundingSet=CAP_NET_ADMIN
+# CAP_NET_ADMIN: netlink, routing tables, policy rules
+# CAP_BPF / CAP_PERFMON: observe-only eBPF load/attach (opt-in via cargo feature + config)
+# CAP_DAC_READ_SEARCH: open root-only tracefs (0700) to resolve tracepoint IDs
+AmbientCapabilities=CAP_NET_ADMIN CAP_BPF CAP_PERFMON CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_BPF CAP_PERFMON CAP_DAC_READ_SEARCH
 
 # Security Hardening
 NoNewPrivileges=true
@@ -34,7 +36,8 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
 ReadOnlyPaths=/etc/netevd
-ProtectKernelTunables=true
+# false so bpf() can load observe-only programs; still no module load
+ProtectKernelTunables=false
 ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectClock=true
@@ -54,9 +57,10 @@ PrivateDevices=false
 # MemoryDenyWriteExecute=true
 
 # System call filtering
-# Allow basic system operations + network/DBus
+# Allow basic system operations + network/DBus; re-allow bpf + perf after ~@privileged
 SystemCallFilter=@system-service @network-io @io-event @signal @process
 SystemCallFilter=~@privileged @clock @module @raw-io @reboot @swap @cpu-emulation @obsolete @debug
+SystemCallFilter=bpf perf_event_open
 SystemCallErrorNumber=EPERM
 
 # Logging

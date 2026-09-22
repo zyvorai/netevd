@@ -29,7 +29,7 @@ pub fn lookup_user(username: &str) -> Result<(Uid, Gid)> {
 /// 1. Enables PR_SET_KEEPCAPS to retain capabilities across setuid
 /// 2. Switches to the target user's UID/GID
 /// 3. Disables PR_SET_KEEPCAPS
-/// 4. Applies CAP_NET_ADMIN and CAP_SYS_ADMIN capabilities
+/// 4. Applies CAP_NET_ADMIN (plus CAP_BPF/CAP_PERFMON when bounded)
 pub fn drop_privileges(username: &str) -> Result<()> {
     if !is_root() {
         warn!("Not running as root, skipping privilege drop");

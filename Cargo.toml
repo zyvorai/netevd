@@ -1,6 +1,6 @@
 [package]
 name = "netevd"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 # Floor set by zbus/zvariant 5.15's own declared rust-version — keep this in
 # sync with the `msrv` job in .github/workflows/cross-platform.yml.
@@ -94,6 +94,7 @@ ipnetwork = "0.21"
 # Optional features
 signal-hook = "0.4"
 signal-hook-tokio = { version = "0.4", features = ["futures-v0_3"] }
+aya = { version = "0.13", optional = true }
 
 [dev-dependencies]
 tempfile = "3.25"
@@ -116,3 +117,9 @@ opt-level = 2
 lto = false
 codegen-units = 16
 strip = true
+
+[features]
+default = []
+# Load observe-only tracepoint programs with Aya. Off by default so CI and
+# distro packages do not need bpf-linker / clang.
+ebpf = ["dep:aya"]
