@@ -6,18 +6,17 @@
 [![codecov](https://codecov.io/gh/zyvorai/netevd/branch/main/graph/badge.svg)](https://codecov.io/gh/zyvorai/netevd)
 [![Release](https://img.shields.io/github/v/release/zyvorai/netevd?sort=semver)](https://github.com/zyvorai/netevd/releases)
 
-<p align="center">
-  <a href="https://zyvor.dev/demo?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Demo-F97316?style=flat-square" alt="Demo"/></a>
-  <a href="https://zyvor.dev/docs?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Docs-2563EB?style=flat-square" alt="Docs"/></a>
-  <a href="https://zyvor.dev/blog?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Blog-71717A?style=flat-square" alt="Blog"/></a>
-  <a href="https://zyvor.dev/contact?utm_source=github&utm_medium=netevd"><img src="https://img.shields.io/badge/Contact_sales-22C55E?style=flat-square" alt="Contact"/></a>
-</p>
+![netevd — Linux network event daemon](docs/social/netevd-share-card.png)
 
-**netevd** runs your scripts the moment something changes on a Linux network interface — link up/down, a new IP, a route change — instead of you writing a NetworkManager dispatcher script, a systemd-networkd `ExecStartPost` hack, or a cron job that polls `ip addr` every few seconds.
+**Run scripts the moment the network changes.**
+
+📖 **[User guide](docs/user/README.md)** — hooks contract, configuration, and troubleshooting.
+
+**netevd** runs your scripts when link, address, or route state changes on Linux — instead of NetworkManager dispatcher hacks, one-shot `ExecStartPost=` units, or cron jobs polling `ip addr`.
 
 It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one event system, with sub-100ms netlink-driven latency, automatic policy routing for multi-homed hosts, a REST API, Prometheus metrics, and a defense-in-depth security model.
 
-## Table of contents
+## Contents
 
 - [Why netevd?](#why-netevd)
 - [Instead of...](#instead-of)
@@ -29,8 +28,9 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one e
 - [Security](#security)
 - [Performance](#performance)
 - [REST API](#rest-api)
-- [FAQ](docs/FAQ.md) · [Troubleshooting](docs/user/getting-started.md#troubleshooting)
+- [Development](#development)
 - [Enterprise](#enterprise)
+- [Support the project](#support-the-project)
 - [License](#license)
 
 ## Why netevd?
@@ -60,7 +60,7 @@ netevd replaces all of these with one daemon: real netlink events (sub-100ms), o
 ### GitHub Release (recommended)
 
 ```bash
-curl -LO https://github.com/zyvorai/netevd/releases/download/v0.4.0/netevd-0.4.0-linux-amd64.tar.gz
+curl -LO https://github.com/zyvorai/netevd/releases/download/v0.4.1/netevd-0.4.1-linux-amd64.tar.gz
 tar xzf netevd-*-linux-amd64.tar.gz && cd netevd-*-linux-amd64
 sudo ./install.sh
 sudo systemctl enable --now netevd
@@ -89,6 +89,25 @@ EOF
 ```
 
 Sample configuration: [config/netevd.example.yaml](config/netevd.example.yaml).
+
+### Containers
+
+Images are published to `ghcr.io/zyvorai/netevd` on each push to `main`.
+
+| Tag | Runtime |
+|-----|---------|
+| `latest-ubuntu` | glibc image on Ubuntu 26.04 |
+| `latest-alpine` | musl image on Alpine 3.23 |
+
+Hook scripts inside the image have `bash` and `ip`. netevd speaks D-Bus with zbus, so the image does not install `dbus` or `systemd`.
+
+### Remote deploy
+
+From a checkout, build on the target and install the systemd unit. The script then creates a `veth-netevd0` / `veth-netevd1` pair (peer in a network namespace), checks ping, and checks that `link-added` / `address-added` hooks ran. The installed lab config matches only `veth-netevd*`.
+
+```bash
+./scripts/deploy-remote.sh <host> [user]
+```
 
 ## How It Works
 
@@ -255,7 +274,7 @@ curl http://localhost:9090/api/v1/status       # Daemon status
 curl http://localhost:9090/api/v1/interfaces    # List interfaces
 curl http://localhost:9090/api/v1/routes        # Routing table
 curl http://localhost:9090/api/v1/events        # Event history
-curl http://localhost:9090/metrics              # Prometheus metrics
+curl http://localhost:9090/metrics              # Prometheus metrics (same port as the API)
 curl http://localhost:9090/health               # Health check
 ```
 
