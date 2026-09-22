@@ -4,12 +4,13 @@ hero:
   title: netevd — User Documentation
 ---
 
-**netevd** is a Netlink-first Linux network event daemon (Rust). It watches carrier, address, route, and manager state — then runs your scripts with rich context. It also maintains per-interface policy routing on multi-homed hosts and exposes REST + Prometheus on `:9090` / `:9091`.
+**netevd** is a Netlink-first Linux network event daemon (Rust). It watches carrier, address, route, and manager state — then runs your scripts with rich context. Opt-in **observe-only eBPF** adds packet drops, TCP retransmits, and TCP resets into the same hook directories. It also maintains per-interface policy routing on multi-homed hosts and exposes REST and Prometheus on `:9090` (`/metrics` is on that same server).
 
 | You want to… | Open |
 |--------------|------|
 | Install and fire the first hook | [Getting Started](getting-started.md) |
 | Orient around hooks / CLI / API | [Using the operator surfaces](using-the-dashboard.md) |
+| Observe-only eBPF (drops / TCP) | [eBPF guide](ebpf.md) · [ringbuf drain](ebpf-ringbuf.md) |
 | Screen-by-screen / command guides | [Page-by-page guides](pages/README.md) |
 | Look up hooks and CLI | [Complete page index](PAGE_INDEX.md) |
 | YAML, systemd, ports, security | [Admin basics](admin-basics.md) |
@@ -33,11 +34,13 @@ Output lands in [`pdf/`](pdf/):
 ## Product at a glance
 
 ```text
-  Hooks      →  /etc/netevd/{carrier,routable,routes,…}.d/
+  Hooks      →  /etc/netevd/{carrier,routable,routes,drops,…}.d/
   Config     →  /etc/netevd/netevd.yaml
-  REST/API   →  :9090  (default bind 127.0.0.1)
-  Metrics    →  :9091
-  Unit       →  netevd.service
+  eBPF       →  cargo build --features ebpf  (see ebpf.md)
+  REST/API   →  :9090  (default bind 127.0.0.1), including /metrics
+  Unit       →  netevd.service (+ optional netevd-ebpf.conf drop-in)
+  Images     →  ghcr.io/zyvorai/netevd:latest-ubuntu (Ubuntu 26.04), :latest-alpine
+  Remote     →  ./scripts/deploy-remote.sh <host> [user]
   CLI        →  netevd status | list | show | events | validate | reload
 ```
 
@@ -47,7 +50,7 @@ Output lands in [`pdf/`](pdf/):
 2. Validate config: `netevd validate`
 3. Inspect live state: `netevd status && netevd list interfaces`
 4. Watch events during a link test: `netevd events -f -i eth0`
-5. Fleet scrape: point Prometheus at `http://<host>:9091/metrics`
+5. Fleet scrape: point Prometheus at `http://<host>:9090/metrics`
 
 Never publish lab IPs in runbooks — use `<host>` for remote targets.
 

@@ -71,6 +71,10 @@ mod tests {
             hook_dir(root, "tcp-retransmit").unwrap(),
             PathBuf::from("/etc/netevd/tcp-retransmit.d")
         );
+        assert_eq!(
+            hook_dir(root, "tcp-reset").unwrap(),
+            PathBuf::from("/etc/netevd/tcp-reset.d")
+        );
         assert!(hook_dir(root, "not-a-state").is_none());
         assert!(hook_dir(root, "../etc").is_none());
     }

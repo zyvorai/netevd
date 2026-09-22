@@ -66,7 +66,7 @@ metrics:
   port: 9091
 ```
 
-6. Add a filter to ignore container interfaces:
+6. Add a filter to ignore container interfaces. `/metrics` is served on `api.port` (default 9090); `metrics.port` is recorded in the config but is not a second listener.
 
 ```yaml
 filters:
@@ -75,7 +75,20 @@ filters:
     action: ignore
 ```
 
-7. Validate, apply, verify:
+7. Optional observe-only eBPF (requires `cargo build --features ebpf` and BPF object):
+
+```yaml
+ebpf:
+  enabled: true
+  drops: true
+  tcp_reset: true
+  min_count: 8
+  reasons_deny: ["NO_SOCKET"]
+```
+
+See [eBPF guide](../../ebpf.md).
+
+8. Validate, apply, verify:
 
 ```bash
 netevd validate -c /etc/netevd/netevd.yaml
@@ -84,9 +97,9 @@ netevd status -f json | jq .
 journalctl -u netevd -n 20 --no-pager
 ```
 
-8. **Empty / fail:** Parse error → validator prints the offending key; hooks stop firing → check filter `action: ignore`; API unreachable → `api.enabled: false` or bind still `127.0.0.1` on remote scrape.
+9. **Empty / fail:** Parse error → validator prints the offending key; hooks stop firing → check filter `action: ignore`; API unreachable → `api.enabled: false` or bind still `127.0.0.1` on remote scrape.
 
-9. **Success:** Summary from `netevd validate` matches intent; daemon logs show chosen backend; hooks and `list rules` behave per YAML.
+10. **Success:** Summary from `netevd validate` matches intent; daemon logs show chosen backend; hooks and `list rules` behave per YAML.
 
 ## Related pages
 

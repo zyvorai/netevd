@@ -31,7 +31,7 @@ Every route is also listed in the [complete page index](../PAGE_INDEX.md).
 | Page | What it covers |
 |------|----------------|
 | [Configuration YAML](ops/config-yaml.md) | Tune backend, monitored interfaces, policy routing, API/metrics bind, event filters, and audit logging — the control plane for every hook and CLI query. |
-| [Prometheus metrics (:9091)](ops/prometheus.md) | Scrape hook execution, event throughput, routing-rule counts, and netlink health for fleet observability — complementing REST status checks on `:9090`. |
+| [Prometheus metrics](ops/prometheus.md) | Scrape hook execution, event throughput, routing-rule counts, and netlink health from `GET /metrics` on the API port (default `:9090`). |
 | [REST API (:9090)](ops/rest-api.md) | Query status, interfaces, routes, policy rules, and recent events over HTTP — the same data backing `netevd status`, `list`, `show`, and `events` without SSH or `ip(8)`. |
 
 ---

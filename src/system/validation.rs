@@ -157,6 +157,7 @@ pub fn validate_state_name(state: &str) -> bool {
             | "dns"
             | "drops"
             | "tcp-retransmit"
+            | "tcp-reset"
     )
 }
 
@@ -214,6 +215,7 @@ mod tests {
             "dns",
             "drops",
             "tcp-retransmit",
+            "tcp-reset",
             "routable",
         ] {
             assert!(validate_state_name(s), "{s}");

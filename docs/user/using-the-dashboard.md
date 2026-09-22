@@ -13,7 +13,7 @@ Kernel / managers  →  netevd watchers  →  NetworkState
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
-           hooks.d/*      REST :9090     metrics :9091
+           hooks.d/*      REST + /metrics :9090
               │               │
               ▼               ▼
          your scripts     netevd status/list/events
@@ -27,7 +27,7 @@ Kernel / managers  →  netevd watchers  →  NetworkState
 | `/etc/netevd/netevd.yaml` | Backend, filters, API bind, metrics |
 | `netevd status\|list\|show\|events` | Live inspection via API |
 | `journalctl -u netevd` | Daemon + hook exit logs |
-| `:9090` / `:9091` | Automation scrape / status on `<host>` |
+| `:9090` | Status, events, and Prometheus `/metrics` on `<host>` |
 
 ## Operate from CLI
 
@@ -35,7 +35,7 @@ Kernel / managers  →  netevd watchers  →  NetworkState
 2. **Validate:** `netevd validate -c /etc/netevd/netevd.yaml`
 3. **Observe:** `netevd events -f` while bouncing a link (`ip link set eth0 down/up`).
 4. **Inspect state:** `netevd list interfaces`, `netevd list rules`, `netevd status -f json`.
-5. **Fleet:** scrape `http://<host>:9091/metrics` or curl `http://<host>:9090/api/v1/status` over SSH tunnel.
+5. **Fleet:** scrape `http://<host>:9090/metrics` or curl `http://<host>:9090/api/v1/status` over an SSH tunnel.
 
 ## Tips
 

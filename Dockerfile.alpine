@@ -33,8 +33,7 @@ RUN apk upgrade --no-cache && \
     apk add --no-cache \
     bash \
     iproute2 \
-    ca-certificates \
-    libcap
+    ca-certificates
 
 # Create netevd user
 RUN adduser -D -H -s /sbin/nologin netevd
@@ -48,11 +47,9 @@ COPY config/netevd.example.yaml /etc/netevd/netevd.yaml
 # Create script directories
 RUN mkdir -p /etc/netevd/{carrier.d,no-carrier.d,configured.d,degraded.d,routable.d,activated.d,disconnected.d,manager.d,routes.d}
 
-# Set capabilities
-RUN setcap cap_net_admin+eip /usr/bin/netevd || true
-
-# Don't run as root
-USER netevd
+# Start as root so the daemon can drop to the netevd user. A setcap'd
+# binary cannot be executed under Docker's default security profile.
+USER root
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

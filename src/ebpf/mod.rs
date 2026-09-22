@@ -5,6 +5,7 @@
 //!
 //! * `drops.d`          — `skb:kfree_skb`
 //! * `tcp-retransmit.d` — `tcp:tcp_retransmit_skb`
+//! * `tcp-reset.d`      — `tcp:tcp_receive_reset` / `tcp:tcp_send_reset`
 
 pub mod coalesce;
 pub mod decode;
@@ -20,5 +21,5 @@ pub use events::{ObsEvent, SampleKey};
 use crate::config::EbpfConfig;
 
 pub fn is_requested(cfg: &EbpfConfig) -> bool {
-    cfg.enabled && (cfg.drops || cfg.tcp_retransmit)
+    cfg.enabled && (cfg.drops || cfg.tcp_retransmit || cfg.tcp_reset)
 }

@@ -43,9 +43,9 @@ the honest boundary of the security model (e.g. it does not protect
 against a malicious script you've already placed in a hook directory, or a
 root compromise).
 
-**What's the current version?** Check the latest git tag/release —
-`CONTRIBUTING.md`/`CHANGELOG.md` don't exist in this repo yet, so releases
-and their notes live in GitHub Releases directly.
+**What's the current version?** 0.4.1. Notes are in [`CHANGELOG.md`](https://github.com/zyvorai/netevd/blob/main/CHANGELOG.md) and [GitHub Releases](https://github.com/zyvorai/netevd/releases).
+
+**How do I install it on another machine?** Use the release tarball, a container (`ghcr.io/zyvorai/netevd:latest-ubuntu` is Ubuntu 26.04; `:latest-alpine` is musl), or `./scripts/deploy-remote.sh <host> [user]` from a checkout. The remote script installs the systemd unit and checks hooks with a `veth-netevd*` pair.
 
 ## Platform & compatibility
 

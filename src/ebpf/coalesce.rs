@@ -43,17 +43,28 @@ impl Coalescer {
             });
     }
 
+    /// Emit buckets that reached `min_count` inside the window, and drop
+    /// expired buckets that never reached the threshold (so they cannot linger).
     pub fn flush_due(&mut self, now: Instant) -> Vec<(ObsEvent, u64)> {
         let window = self.window;
         let min_count = self.min_count;
-        let due: Vec<_> = self
-            .buckets
-            .iter()
-            .filter(|(_, b)| now.duration_since(b.first) >= window && b.count >= min_count)
-            .map(|(k, _)| k.clone())
-            .collect();
-        let mut out = Vec::with_capacity(due.len());
-        for k in due {
+        let mut emit = Vec::new();
+        let mut drop_keys = Vec::new();
+        for (k, b) in self.buckets.iter() {
+            if now.duration_since(b.first) < window {
+                continue;
+            }
+            if b.count >= min_count {
+                emit.push(k.clone());
+            } else {
+                drop_keys.push(k.clone());
+            }
+        }
+        for k in drop_keys {
+            self.buckets.remove(&k);
+        }
+        let mut out = Vec::with_capacity(emit.len());
+        for k in emit {
             if let Some(b) = self.buckets.remove(&k) {
                 out.push((b.sample, b.count));
             }
@@ -93,20 +104,17 @@ mod tests {
         c.push(sample(2, 7)); // different reason
         assert_eq!(c.len(), 2);
         let flushed = c.flush_due(Instant::now() + Duration::from_millis(60));
-        assert_eq!(flushed.len(), 2);
-        let qdisc = flushed
-            .iter()
-            .find(|(s, _)| s.reason == 46)
-            .unwrap();
-        assert_eq!(qdisc.1, 3);
+        assert_eq!(flushed.len(), 1); // only reason 46 hit min_count=3
+        assert_eq!(flushed[0].1, 3);
+        assert_eq!(c.len(), 0); // under-threshold bucket expired
     }
 
     #[test]
-    fn respects_min_count() {
+    fn respects_min_count_then_expires() {
         let mut c = Coalescer::new(Duration::from_millis(1), 5);
         c.push(sample(1, 1));
         let flushed = c.flush_due(Instant::now() + Duration::from_secs(1));
         assert!(flushed.is_empty());
-        assert_eq!(c.len(), 1);
+        assert_eq!(c.len(), 0);
     }
 }

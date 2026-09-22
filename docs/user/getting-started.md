@@ -16,11 +16,28 @@ hero:
 **Release tarball (recommended):**
 
 ```bash
-curl -LO https://github.com/zyvorai/netevd/releases/latest/download/netevd-linux-amd64.tar.gz
+curl -LO https://github.com/zyvorai/netevd/releases/download/v0.4.1/netevd-0.4.1-linux-amd64.tar.gz
 tar xzf netevd-*-linux-amd64.tar.gz && cd netevd-*-linux-amd64
 sudo ./install.sh
 sudo systemctl enable --now netevd
 ```
+
+arm64 asset: `netevd-0.4.1-linux-arm64.tar.gz`.
+
+**Containers** (`ghcr.io/zyvorai/netevd`):
+
+| Tag | Runtime |
+|-----|---------|
+| `latest-ubuntu` | glibc (Ubuntu 26.04) |
+| `latest-alpine` | musl (Alpine 3.23) |
+
+**Remote host:**
+
+```bash
+./scripts/deploy-remote.sh <host> [user]
+```
+
+That builds on the target, installs `netevd.service`, and checks hooks with a `veth-netevd*` pair. The lab config matches only that pair.
 
 **From source:**
 

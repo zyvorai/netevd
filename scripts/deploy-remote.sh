@@ -104,21 +104,34 @@ ebpf:
   enabled: true
   drops: true
   tcp_retransmit: false
+  tcp_reset: true
   debounce_ms: 250
   min_count: 8
   object_path: ""
+  skip_unknown_ifindex: true
+  reasons_allow: []
+  reasons_deny: []
 YAML
-sudo mkdir -p /etc/netevd/link-added.d /etc/netevd/address-added.d /etc/netevd/drops.d
+sudo mkdir -p /etc/netevd/link-added.d /etc/netevd/address-added.d /etc/netevd/drops.d /etc/netevd/tcp-reset.d
 sudo tee /etc/netevd/link-added.d/01-log.sh >/dev/null <<'HOOK'
 #!/bin/sh
 printf '%s %s %s\n' "\$(date -Is)" "\$EVENT" "\$LINK" >> /var/lib/netevd/events.log
 HOOK
 sudo tee /etc/netevd/drops.d/01-log.sh >/dev/null <<'HOOK'
 #!/bin/sh
-printf '%s %s %s reason=%s n=%s\n' "\$(date -Is)" "\$EVENT" "\$LINK" "\${DROP_REASON:-}" "\${COUNT:-}" >> /var/lib/netevd/events.log
+printf '%s %s %s reason=%s proto=%s sport=%s dport=%s n=%s\n' \
+  "\$(date -Is)" "\$EVENT" "\$LINK" "\${DROP_REASON:-}" "\${PROTOCOL:-}" \
+  "\${SPORT:-}" "\${DPORT:-}" "\${COUNT:-}" >> /var/lib/netevd/events.log
+HOOK
+sudo tee /etc/netevd/tcp-reset.d/01-log.sh >/dev/null <<'HOOK'
+#!/bin/sh
+printf '%s %s %s reason=%s sport=%s dport=%s n=%s\n' \
+  "\$(date -Is)" "\$EVENT" "\$LINK" "\${DROP_REASON:-}" \
+  "\${SPORT:-}" "\${DPORT:-}" "\${COUNT:-}" >> /var/lib/netevd/events.log
 HOOK
 sudo cp /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh
-sudo chmod 755 /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh /etc/netevd/drops.d/01-log.sh
+sudo chmod 755 /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh \
+  /etc/netevd/drops.d/01-log.sh /etc/netevd/tcp-reset.d/01-log.sh
 sudo systemctl daemon-reload
 sudo systemctl enable --now netevd
 sudo systemctl restart netevd
@@ -141,6 +154,8 @@ sudo -n ip netns exec nvtest ip addr add ${VETH_IP_B} dev ${VETH_B}
 sudo -n ip netns exec nvtest ip link set ${VETH_B} up
 sleep 2
 sudo -n ip netns exec nvtest ping -c 2 -W 2 ${VETH_IP_A%/*}
+# Allow coalesce window for observe hooks (debounce_ms * a few ticks).
+sleep 6
 echo '--- events.log (head) ---'
 sudo -n head -n 40 /var/lib/netevd/events.log
 echo '--- journal (attach) ---'
@@ -148,11 +163,12 @@ sudo -n journalctl -u netevd --no-pager -n 5 --grep='eBPF observe-only programs 
 sudo -n grep -q "link-added ${VETH_A}" /var/lib/netevd/events.log
 sudo -n grep -q "link-added ${VETH_B}" /var/lib/netevd/events.log
 sudo -n grep -q "address-added ${VETH_A}" /var/lib/netevd/events.log
-sudo -n grep -q '^.* drops ' /var/lib/netevd/events.log
+sudo -n grep -qE ' (drops|tcp-reset|tcp-retransmit) ' /var/lib/netevd/events.log
 ATTACH="\$(sudo -n journalctl -u netevd --no-pager -n 1 --grep='eBPF observe-only programs attached' || true)"
 echo "\$ATTACH" | grep -q 'eBPF observe-only programs attached'
+echo "\$ATTACH" | grep -q 'attachments=3'
 sudo -n ip netns del nvtest
-echo 'veth + eBPF attach + drops drain test passed'
+echo 'veth + eBPF attach + observe drain test passed'
 EOF
 
 info "Deployed netevd on ${USER}@${HOST}; veth + eBPF attach test passed"

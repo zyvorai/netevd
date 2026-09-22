@@ -45,7 +45,7 @@ netevd events -f -i eth0 -t routable
 ## D. Fleet observability
 
 1. Set `api.bind_address: "0.0.0.0"` only on trusted management networks (or scrape via SSH tunnel).
-2. Point Prometheus at `http://<host>:9091/metrics` and/or REST `http://<host>:9090/api/v1/status`.
+2. Point Prometheus at `http://<host>:9090/metrics` and REST `http://<host>:9090/api/v1/status`.
 3. Alert when `netevd_script_executions_total` goes quiet (daemon likely down).
 
 ## E. Safe change window
@@ -68,6 +68,16 @@ netevd validate && sudo systemctl restart netevd
 netevd events -f   # confirm docker events no longer dispatch hooks
 ```
 
+## G. Veth hook check
+
+From a checkout, on a host that should not hook every existing veth:
+
+```bash
+./scripts/deploy-remote.sh <host> [user]
+```
+
+The script installs netevd with a config that matches only `veth-netevd*`, creates that pair (peer in a network namespace), and checks `link-added` and `address-added` hooks. Same-host ping between two veth ends is not a valid check on hosts that filter local ICMP; the script pings across the namespace boundary.
+
 ## Operate from CLI
 
-Every workflow above is CLI-first: hooks in `/etc/netevd/`, validation via `netevd validate`, observation via `netevd events` and `journalctl`, fleet checks via curl to `<host>:9090` / `:9091`. See [Page-by-page guides](pages/README.md) for command-level detail per surface.
+Every workflow above is CLI-first: hooks in `/etc/netevd/`, validation via `netevd validate`, observation via `netevd events` and `journalctl`, fleet checks via curl to `<host>:9090`. See [Page-by-page guides](pages/README.md) for command-level detail per surface.

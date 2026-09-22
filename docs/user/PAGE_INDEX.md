@@ -27,13 +27,14 @@ Regenerate: `node scripts/user-docs/generate-page-index.mjs`
 | Hook: manager / NetworkManager | `/manager` | React to NetworkManager device activation, disconnect, and manager state. | [Open](pages/hooks/manager.md) |
 | Hook: routable | `/routable` | Fire when an interface has full L3 connectivity (systemd-networkd or dhclient). | [Open](pages/hooks/routable.md) |
 | Hook: routes | `/routes` | React to routing-table changes via routes.d hooks. | [Open](pages/hooks/routes.md) |
+| Observe-only eBPF | — | Packet drops, TCP retransmit, TCP reset → drops.d / tcp-retransmit.d / tcp-reset.d | [ebpf.md](ebpf.md) · [ringbuf](ebpf-ringbuf.md) |
 
 ## Ops
 
 | Page | Route | Purpose | Guide |
 |------|-------|---------|-------|
 | Configuration YAML | `/config-yaml` | Tune backend, monitored interfaces, policy routing, API/metrics, filters, and audit. | [Open](pages/ops/config-yaml.md) |
-| Prometheus metrics (:9091) | `/prometheus` | Scrape hook and event health metrics for fleet observability. | [Open](pages/ops/prometheus.md) |
+| Prometheus metrics | `/prometheus` | Scrape hook and event health metrics on the API port. | [Open](pages/ops/prometheus.md) |
 | REST API (:9090) | `/rest-api` | Query status, interfaces, routes, rules, and events without SSH or ip(8). | [Open](pages/ops/rest-api.md) |
 
 ## Related

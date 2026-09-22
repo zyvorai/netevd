@@ -81,7 +81,7 @@ netevd events --tail 20 -f json
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Liveness and subsystem checks |
-| GET | `/metrics` | Prometheus text (also on `:9091`) |
+| GET | `/metrics` | Prometheus text on the API port |
 | GET | `/api/v1/status` | Daemon summary |
 | GET | `/api/v1/interfaces` | All interfaces |
 | GET | `/api/v1/interfaces/{name}` | One interface |

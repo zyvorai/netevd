@@ -1,12 +1,12 @@
 ---
 hero:
   eyebrow: USER GUIDE
-  title: Prometheus metrics (:9091)
+  title: Prometheus metrics
 ---
 
 ## Purpose
 
-Scrape hook execution, event throughput, routing-rule counts, and netlink health for fleet observability — complementing REST status checks on `:9090`.
+Scrape hook execution, event throughput, routing-rule counts, and netlink health for fleet observability — the same HTTP server as the REST API on `:9090`.
 
 ## When to use it
 
@@ -16,10 +16,9 @@ Scrape hook execution, event throughput, routing-rule counts, and netlink health
 
 ## How to get there
 
-- Metrics port: `metrics.port` in `/etc/netevd/netevd.yaml` (default **9091**)
-- Enable: `metrics.enabled: true`
-- Endpoint: `http://<host>:9091/metrics` (Prometheus text exposition)
-- Note: `/metrics` also exists on the API router at `:9090` when API is enabled; prefer the dedicated metrics port for scrape jobs
+- Enable: `metrics.enabled: true` in `/etc/netevd/netevd.yaml`
+- Endpoint: `http://<host>:9090/metrics` on the API server (Prometheus text exposition)
+- `metrics.port` (default 9091) is stored in the config and logged at startup; the daemon serves `/metrics` on `api.port`
 
 ## Operate from CLI
 
@@ -27,13 +26,13 @@ Scrape hook execution, event throughput, routing-rule counts, and netlink health
 
 ```bash
 grep -A3 '^metrics:' /etc/netevd/netevd.yaml
-curl -sf http://127.0.0.1:9091/metrics | head -20
+curl -sf http://127.0.0.1:9090/metrics | head -20
 ```
 
 2. Inspect key series locally:
 
 ```bash
-curl -sf http://127.0.0.1:9091/metrics | grep -E '^netevd_(info|events_total|script_|routing_rules)'
+curl -sf http://127.0.0.1:9090/metrics | grep -E '^netevd_(info|events_total|script_|routing_rules|ebpf_)'
 ```
 
 3. Prometheus scrape config (replace `<host>` with your edge/management target):
@@ -43,7 +42,7 @@ scrape_configs:
   - job_name: netevd
     scrape_interval: 30s
     static_configs:
-      - targets: ['<host>:9091']
+      - targets: ['<host>:9090']
         labels:
           role: network-events
 ```
@@ -69,7 +68,7 @@ groups:
 5. Remote check from your workstation:
 
 ```bash
-curl -sf http://<host>:9091/metrics | grep netevd_uptime_seconds
+curl -sf http://<host>:9090/metrics | grep netevd_uptime_seconds
 ```
 
 6. **Empty / fail:** Connection refused → `metrics.enabled: false` or firewall; series missing → daemon just started or metrics init failed (see `journalctl -u netevd`).

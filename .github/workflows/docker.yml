@@ -22,8 +22,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - dockerfile: Dockerfile.debian
-            tag-suffix: debian
+          - dockerfile: Dockerfile.ubuntu
+            tag-suffix: ubuntu
           - dockerfile: Dockerfile.alpine
             tag-suffix: alpine
 
@@ -76,7 +76,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-debian
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-ubuntu
           format: 'sarif'
           output: 'trivy-results.sarif'
 

@@ -93,6 +93,10 @@ ebpf:
   enabled: false
   drops: true
   tcp_retransmit: false
+  tcp_reset: false
   debounce_ms: 250
   min_count: 8
   object_path: ""
+  skip_unknown_ifindex: true
+  reasons_allow: []       # e.g. ["QDISC_DROP", "NETFILTER_DROP"]
+  reasons_deny: []        # e.g. ["NO_SOCKET"]

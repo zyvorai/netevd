@@ -72,12 +72,15 @@ pub struct EbpfConfig {
     /// Master switch. Default off — netlink remains the only event source.
     #[serde(default)]
     pub enabled: bool,
-    /// Attach `kfree_skb` / `consume_skb` and emit `drops.d` hooks.
+    /// Attach `kfree_skb` and emit `drops.d` hooks.
     #[serde(default = "default_true")]
     pub drops: bool,
     /// Attach `tcp_retransmit_skb` and emit `tcp-retransmit.d` hooks.
     #[serde(default)]
     pub tcp_retransmit: bool,
+    /// Attach `tcp_receive_reset` / `tcp_send_reset` → `tcp-reset.d`.
+    #[serde(default)]
+    pub tcp_reset: bool,
     /// Coalesce identical (ifindex, reason, proto, ports) samples.
     #[serde(default = "default_ebpf_debounce_ms")]
     pub debounce_ms: u64,
@@ -88,6 +91,15 @@ pub struct EbpfConfig {
     /// then `/usr/lib/netevd/netevd-ebpf.o`.
     #[serde(default)]
     pub object_path: String,
+    /// Drop samples whose ifindex could not be resolved (`if0`).
+    #[serde(default = "default_true")]
+    pub skip_unknown_ifindex: bool,
+    /// Only emit these drop/reset reason names or numeric codes (empty = all).
+    #[serde(default)]
+    pub reasons_allow: Vec<String>,
+    /// Never emit these reason names or numeric codes.
+    #[serde(default)]
+    pub reasons_deny: Vec<String>,
 }
 
 impl Default for EbpfConfig {
@@ -96,9 +108,13 @@ impl Default for EbpfConfig {
             enabled: false,
             drops: true,
             tcp_retransmit: false,
+            tcp_reset: false,
             debounce_ms: default_ebpf_debounce_ms(),
             min_count: default_ebpf_min_count(),
             object_path: String::new(),
+            skip_unknown_ifindex: true,
+            reasons_allow: Vec::new(),
+            reasons_deny: Vec::new(),
         }
     }
 }
@@ -112,7 +128,7 @@ fn default_ebpf_debounce_ms() -> u64 {
 }
 
 fn default_ebpf_min_count() -> u64 {
-    1
+    8
 }
 
 impl Default for HooksConfig {

@@ -11,16 +11,18 @@
 **Run scripts the moment the network changes.**
 
 📖 **[User guide](docs/user/README.md)** — hooks contract, configuration, and troubleshooting.
+📡 **[Observe-only eBPF](docs/user/ebpf.md)** — packet drops, TCP retransmits, and TCP resets → the same hook contract.
 
 **netevd** runs your scripts when link, address, or route state changes on Linux — instead of NetworkManager dispatcher hacks, one-shot `ExecStartPost=` units, or cron jobs polling `ip addr`.
 
-It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one event system, with sub-100ms netlink-driven latency, automatic policy routing for multi-homed hosts, a REST API, Prometheus metrics, and a defense-in-depth security model.
+It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one event system, with sub-100ms netlink-driven latency, **opt-in eBPF observation** for stack drops and TCP health, automatic policy routing for multi-homed hosts, a REST API, Prometheus metrics, and a defense-in-depth security model.
 
 ## Contents
 
 - [Why netevd?](#why-netevd)
 - [Instead of...](#instead-of)
 - [Quick Start](#quick-start)
+- [Observe-only eBPF](#observe-only-ebpf)
 - [How It Works](#how-it-works)
 - [Configuration](#configuration)
 - [Script Directories](#script-directories)
@@ -41,7 +43,8 @@ It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one e
 | Multi-homed server with broken return-path routing | Automatic per-interface routing tables and policy rules |
 | Want real-time network events, not polling | Netlink multicast: sub-100ms latency, zero polling |
 | Need to support multiple network managers | One daemon handles networkd, NetworkManager, and dhclient |
-| Security concerns with network daemons | Privilege separation, CAP_NET_ADMIN only, input validation |
+| Silent packet drops / TCP RST that netlink never sees | Opt-in eBPF → `drops.d` / `tcp-retransmit.d` / `tcp-reset.d` |
+| Security concerns with network daemons | Privilege separation, tight capabilities, input validation |
 
 ## Instead of...
 
@@ -71,6 +74,8 @@ sudo systemctl enable --now netevd
 ```bash
 git clone https://github.com/zyvorai/netevd.git && cd netevd
 cargo build --release
+# optional observe-only eBPF (drops / TCP retransmit / TCP reset):
+#   make -C ebpf && cargo build --release --features ebpf
 sudo install -Dm755 target/release/netevd /usr/bin/netevd
 sudo install -Dm644 systemd/netevd.service /lib/systemd/system/netevd.service
 sudo install -Dm644 config/netevd.example.yaml /etc/netevd/netevd.yaml
@@ -109,12 +114,49 @@ From a checkout, build on the target and install the systemd unit. The script th
 ./scripts/deploy-remote.sh <host> [user]
 ```
 
+## Observe-only eBPF
+
+Netlink covers link, address, and route. It does **not** see silent stack drops or TCP retransmit/RST. With `--features ebpf`, netevd attaches observe-only tracepoints and feeds the **same** hook contract:
+
+| Kernel source | Hook directory |
+|---------------|----------------|
+| `skb:kfree_skb` | `/etc/netevd/drops.d/` |
+| `tcp:tcp_retransmit_skb` | `/etc/netevd/tcp-retransmit.d/` |
+| `tcp:tcp_receive_reset` / `tcp:tcp_send_reset` | `/etc/netevd/tcp-reset.d/` |
+
+This is **not** XDP/TC enforcement, DNS/SNI inspection, or process attribution — those stay out of Community scope. Programs never return `XDP_DROP`.
+
+```bash
+make -C ebpf
+cargo build --release --features ebpf
+sudo install -Dm644 ebpf/netevd-ebpf.o /usr/lib/netevd/netevd-ebpf.o
+sudo install -Dm644 systemd/netevd-ebpf.conf \
+  /etc/systemd/system/netevd.service.d/ebpf.conf
+```
+
+```yaml
+ebpf:
+  enabled: true
+  drops: true
+  tcp_retransmit: false
+  tcp_reset: true
+  debounce_ms: 250
+  min_count: 8
+  skip_unknown_ifindex: true
+  reasons_deny: ["NO_SOCKET"]   # optional noise filter
+```
+
+Hooks get `$DROP_REASON`, `$PROTOCOL`, `$SPORT`/`$DPORT`, `$COUNT`, and `$JSON`. Metrics: `netevd_ebpf_samples_total`, `netevd_ebpf_hooks_total`, `netevd_ebpf_ring_lost_total`, `netevd_ebpf_attached`.
+
+Full guide: [docs/user/ebpf.md](docs/user/ebpf.md) · drain path: [docs/user/ebpf-ringbuf.md](docs/user/ebpf-ringbuf.md).
+
 ## How It Works
 
 ```
                     +------------------+
                     |   Linux Kernel   |
-                    |  Netlink events  |
+                    | Netlink + eBPF   |
+                    |  (observe-only)  |
                     +--------+---------+
                              |
          +-------------------+-------------------+
@@ -134,13 +176,13 @@ From a checkout, build on the target and install the systemd unit. The script th
               +--------------+--------------+
               |              |              |
         +-----+-----+  +----+----+  +------+------+
-        |  Routing   |  | Script  |  |    DBus     |
-        |  policy    |  |  exec   |  |  resolved/  |
-        |  rules     |  |         |  |  hostnamed  |
+        |  Routing   |  | Script  |  |  eBPF obs.  |
+        |  policy    |  |  exec   |  | drops/rtx/  |
+        |  rules     |  |         |  |   reset     |
         +------------+  +---------+  +-------------+
 ```
 
-**Event sources** -- netevd subscribes to kernel netlink multicast groups and listens for DBus signals from your chosen backend (systemd-networkd, NetworkManager) or watches dhclient lease files via inotify.
+**Event sources** -- netevd subscribes to kernel netlink multicast groups and listens for DBus signals from your chosen backend (systemd-networkd, NetworkManager) or watches dhclient lease files via inotify. With `--features ebpf`, it also drains observe-only tracepoints (drops, TCP retransmit, TCP reset) into the same hook directories.
 
 **State management** -- All state is held in a single `NetworkState` behind `Arc<RwLock>`, updated by concurrent Tokio tasks. Read locks for queries, write locks for mutations -- no races.
 
@@ -203,6 +245,9 @@ Scripts are organized by the event that triggers them:
 | `link-added.d/` | Interface appears (veth, tap, WireGuard, ...) | All (netlink, backend-independent) |
 | `link-removed.d/` | Interface disappears | All (netlink, backend-independent) |
 | `mtu.d/` | Interface MTU changes | All (netlink, backend-independent) |
+| `drops.d/` | Kernel packet drop (`kfree_skb`) | eBPF (opt-in `--features ebpf`) |
+| `tcp-retransmit.d/` | TCP retransmission | eBPF (opt-in) |
+| `tcp-reset.d/` | TCP RST send/receive | eBPF (opt-in) |
 
 Scripts run in alphabetical order. Use numeric prefixes (`01-`, `02-`) to control ordering. Non-zero exit codes are logged but don't block other scripts.
 
@@ -248,10 +293,10 @@ default via 192.168.1.1 dev eth1
 netevd follows a defense-in-depth model:
 
 1. **Privilege separation** -- Starts as root, immediately drops to the `netevd` user via `setuid`/`setgid`
-2. **Minimal capabilities** -- Retains only `CAP_NET_ADMIN`; child processes inherit nothing
+2. **Minimal capabilities** -- Retains `CAP_NET_ADMIN` by default; with `--features ebpf` also `CAP_BPF`, `CAP_PERFMON`, and `CAP_DAC_READ_SEARCH` for observe-only attach. Child processes inherit nothing
 3. **Input validation** -- All external data (interface names, IPs, hostnames) is validated; shell metacharacters are rejected
 4. **No shell intermediary** -- Scripts are executed directly, not via `sh -c`
-5. **systemd hardening** -- `NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`
+5. **systemd hardening** -- `NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp` (eBPF builds re-allow `bpf` / `perf_event_open`)
 
 Details: **[Security Policy](SECURITY.md)**
 

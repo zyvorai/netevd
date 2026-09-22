@@ -1,3 +1,11 @@
+netevd (0.4.1-1) unstable; urgency=medium
+
+  * Release 0.4.1
+  * glibc container image is Ubuntu 26.04; Alpine image pinned to 3.23
+  * Remote deploy script with a veth hook check
+
+ -- ZyvorAI Labs Private Limited <legal@zyvor.dev>  Mon, 21 Sep 2026 00:00:00 +0000
+
 netevd (0.1.0-1) unstable; urgency=medium
 
   * Initial Debian release

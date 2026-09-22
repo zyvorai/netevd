@@ -34,6 +34,7 @@ pub const HOOK_STATES: &[&str] = &[
     "dns",
     "drops",
     "tcp-retransmit",
+    "tcp-reset",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -28,7 +28,7 @@ pub fn object_exists(path: &Path) -> bool {
 pub mod aya_attach {
     use super::*;
     use anyhow::{bail, Context, Result};
-    use aya::maps::RingBuf;
+    use aya::maps::{Array, MapData, RingBuf};
     use aya::programs::TracePoint;
     use aya::Ebpf;
 
@@ -54,6 +54,16 @@ pub mod aya_attach {
                 "tcp_retransmit_skb",
             )?;
         }
+        if cfg.tcp_reset {
+            attachments += attach_tp(
+                &mut bpf,
+                "observe_tcp_receive_reset",
+                "tcp",
+                "tcp_receive_reset",
+            )?;
+            attachments +=
+                attach_tp(&mut bpf, "observe_tcp_send_reset", "tcp", "tcp_send_reset")?;
+        }
         Ok(Loaded { bpf, attachments })
     }
 
@@ -67,11 +77,22 @@ pub mod aya_attach {
         Ok(1)
     }
 
-    pub fn take_ring(bpf: &mut Ebpf) -> Result<RingBuf<aya::maps::MapData>> {
+    pub fn take_ring(bpf: &mut Ebpf) -> Result<RingBuf<MapData>> {
         let map = bpf
             .take_map("events")
             .context("missing ringbuf map `events`")?;
         RingBuf::try_from(map).context("map `events` is not a ringbuf")
+    }
+
+    /// Read the BPF `ring_lost` counter (key 0). Cumulative; userspace diffs.
+    pub fn read_ring_lost(bpf: &mut Ebpf) -> u64 {
+        let Some(map) = bpf.map_mut("ring_lost") else {
+            return 0;
+        };
+        let Ok(arr) = Array::<_, u64>::try_from(map) else {
+            return 0;
+        };
+        arr.get(&0, 0).unwrap_or(0)
     }
 }
 

@@ -36,6 +36,12 @@ pub struct Metrics {
     // Hook contract metrics
     pub hooks_dispatched_total: CounterVec,
     pub hooks_coalesced_total: Counter,
+
+    // Observe-only eBPF metrics
+    pub ebpf_samples_total: CounterVec,
+    pub ebpf_hooks_total: CounterVec,
+    pub ebpf_ring_lost_total: Counter,
+    pub ebpf_attached: Gauge,
 }
 
 impl Metrics {
@@ -171,6 +177,36 @@ impl Metrics {
         ))?;
         registry.register(Box::new(hooks_coalesced_total.clone()))?;
 
+        let ebpf_samples_total = CounterVec::new(
+            Opts::new(
+                "netevd_ebpf_samples_total",
+                "Raw observe-only eBPF samples drained from the ring buffer",
+            ),
+            &["kind"],
+        )?;
+        registry.register(Box::new(ebpf_samples_total.clone()))?;
+
+        let ebpf_hooks_total = CounterVec::new(
+            Opts::new(
+                "netevd_ebpf_hooks_total",
+                "Coalesced eBPF samples dispatched as hooks",
+            ),
+            &["event"],
+        )?;
+        registry.register(Box::new(ebpf_hooks_total.clone()))?;
+
+        let ebpf_ring_lost_total = Counter::with_opts(Opts::new(
+            "netevd_ebpf_ring_lost_total",
+            "eBPF ringbuf reserve failures reported by the BPF object",
+        ))?;
+        registry.register(Box::new(ebpf_ring_lost_total.clone()))?;
+
+        let ebpf_attached = Gauge::with_opts(Opts::new(
+            "netevd_ebpf_attached",
+            "Number of observe-only eBPF programs currently attached",
+        ))?;
+        registry.register(Box::new(ebpf_attached.clone()))?;
+
         Ok(Self {
             registry,
             uptime_seconds,
@@ -189,6 +225,10 @@ impl Metrics {
             netlink_errors_total,
             hooks_dispatched_total,
             hooks_coalesced_total,
+            ebpf_samples_total,
+            ebpf_hooks_total,
+            ebpf_ring_lost_total,
+            ebpf_attached,
         })
     }
 
