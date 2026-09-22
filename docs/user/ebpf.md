@@ -40,6 +40,11 @@ ebpf:
    `CAP_BPF` and `CAP_PERFMON` (kernel 5.8+). Tracepoint attach reads
    `/sys/kernel/tracing` (often mode 0700), so the unit also grants
    `CAP_DAC_READ_SEARCH`. The shipped systemd unit includes all four.
+   With `--features ebpf`, also install `systemd/netevd-ebpf.conf` as
+   `/etc/systemd/system/netevd.service.d/ebpf.conf`.
+
+Live ring-buffer drain, coalesce, and CO-RE field fill: see
+[ebpf-ringbuf.md](ebpf-ringbuf.md).
 
 ## Hook environment
 

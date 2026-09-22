@@ -25,6 +25,7 @@ pub fn apply_capabilities() -> Result<()> {
         Capability::CAP_BPF,
         Capability::CAP_PERFMON,
         Capability::CAP_DAC_READ_SEARCH,
+        Capability::CAP_NET_RAW,
     ] {
         if caps::has_cap(None, CapSet::Bounding, cap).unwrap_or(false) {
             capabilities.insert(cap);

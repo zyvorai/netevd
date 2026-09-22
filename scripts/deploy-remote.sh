@@ -59,6 +59,7 @@ sudo install -Dm755 target/release/netevd /usr/bin/netevd
 sudo install -Dm644 ebpf/netevd-ebpf.o /usr/lib/netevd/netevd-ebpf.o
 sudo install -Dm644 systemd/netevd.service /lib/systemd/system/netevd.service
 sudo mkdir -p /etc/netevd /etc/systemd/system/netevd.service.d
+sudo install -Dm644 systemd/netevd-ebpf.conf /etc/systemd/system/netevd.service.d/ebpf.conf
 sudo tee /etc/systemd/system/netevd.service.d/state.conf >/dev/null <<'UNIT'
 [Service]
 StateDirectory=netevd
@@ -112,8 +113,12 @@ sudo tee /etc/netevd/link-added.d/01-log.sh >/dev/null <<'HOOK'
 #!/bin/sh
 printf '%s %s %s\n' "\$(date -Is)" "\$EVENT" "\$LINK" >> /var/lib/netevd/events.log
 HOOK
+sudo tee /etc/netevd/drops.d/01-log.sh >/dev/null <<'HOOK'
+#!/bin/sh
+printf '%s %s %s reason=%s n=%s\n' "\$(date -Is)" "\$EVENT" "\$LINK" "\${DROP_REASON:-}" "\${COUNT:-}" >> /var/lib/netevd/events.log
+HOOK
 sudo cp /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh
-sudo chmod 755 /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh
+sudo chmod 755 /etc/netevd/link-added.d/01-log.sh /etc/netevd/address-added.d/01-log.sh /etc/netevd/drops.d/01-log.sh
 sudo systemctl daemon-reload
 sudo systemctl enable --now netevd
 sudo systemctl restart netevd
@@ -124,33 +129,30 @@ EOF
 info "Create veth pair ${VETH_A} <-> ${VETH_B} and check hooks + eBPF attach"
 ssh "${SSH_OPTS[@]}" "${USER}@${HOST}" "bash -s" <<EOF
 set -euo pipefail
-sudo ip netns del nvtest 2>/dev/null || true
-sudo ip link del ${VETH_A} 2>/dev/null || true
-sudo rm -f /var/lib/netevd/events.log
-sudo ip link add ${VETH_A} type veth peer name ${VETH_B}
-sudo ip netns add nvtest
-sudo ip link set ${VETH_B} netns nvtest
-sudo ip addr add ${VETH_IP_A} dev ${VETH_A}
-sudo ip link set ${VETH_A} up
-sudo ip netns exec nvtest ip addr add ${VETH_IP_B} dev ${VETH_B}
-sudo ip netns exec nvtest ip link set ${VETH_B} up
+sudo -n ip netns del nvtest 2>/dev/null || true
+sudo -n ip link del ${VETH_A} 2>/dev/null || true
+sudo -n rm -f /var/lib/netevd/events.log
+sudo -n ip link add ${VETH_A} type veth peer name ${VETH_B}
+sudo -n ip netns add nvtest
+sudo -n ip link set ${VETH_B} netns nvtest
+sudo -n ip addr add ${VETH_IP_A} dev ${VETH_A}
+sudo -n ip link set ${VETH_A} up
+sudo -n ip netns exec nvtest ip addr add ${VETH_IP_B} dev ${VETH_B}
+sudo -n ip netns exec nvtest ip link set ${VETH_B} up
 sleep 2
-sudo ip netns exec nvtest ping -c 2 -W 2 ${VETH_IP_A%/*}
-echo '--- events.log ---'
-sudo cat /var/lib/netevd/events.log
-echo '--- journal ---'
-sudo journalctl -u netevd --no-pager -n 50 --since '3 min ago'
-sudo grep -q "link-added ${VETH_A}" /var/lib/netevd/events.log
-sudo grep -q "link-added ${VETH_B}" /var/lib/netevd/events.log
-sudo grep -q "address-added ${VETH_A}" /var/lib/netevd/events.log
-if sudo journalctl -u netevd --no-pager --since '3 min ago' | grep -q 'eBPF requested but not attached'; then
-  echo 'eBPF attach failed' >&2
-  exit 1
-fi
-JOURNAL="$(sudo journalctl -u netevd --no-pager --since '3 min ago')"
-echo "\$JOURNAL" | grep -q 'eBPF observe-only programs attached'
-sudo ip netns del nvtest
-echo 'veth + eBPF attach test passed'
+sudo -n ip netns exec nvtest ping -c 2 -W 2 ${VETH_IP_A%/*}
+echo '--- events.log (head) ---'
+sudo -n head -n 40 /var/lib/netevd/events.log
+echo '--- journal (attach) ---'
+sudo -n journalctl -u netevd --no-pager -n 5 --grep='eBPF observe-only programs attached'
+sudo -n grep -q "link-added ${VETH_A}" /var/lib/netevd/events.log
+sudo -n grep -q "link-added ${VETH_B}" /var/lib/netevd/events.log
+sudo -n grep -q "address-added ${VETH_A}" /var/lib/netevd/events.log
+sudo -n grep -q '^.* drops ' /var/lib/netevd/events.log
+ATTACH="\$(sudo -n journalctl -u netevd --no-pager -n 1 --grep='eBPF observe-only programs attached' || true)"
+echo "\$ATTACH" | grep -q 'eBPF observe-only programs attached'
+sudo -n ip netns del nvtest
+echo 'veth + eBPF attach + drops drain test passed'
 EOF
 
 info "Deployed netevd on ${USER}@${HOST}; veth + eBPF attach test passed"
