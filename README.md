@@ -5,360 +5,226 @@
 [![Functional Tests](https://github.com/zyvorai/netevd/actions/workflows/functional-tests.yml/badge.svg)](https://github.com/zyvorai/netevd/actions/workflows/functional-tests.yml)
 [![codecov](https://codecov.io/gh/zyvorai/netevd/branch/main/graph/badge.svg)](https://codecov.io/gh/zyvorai/netevd)
 [![Release](https://img.shields.io/github/v/release/zyvorai/netevd?sort=semver)](https://github.com/zyvorai/netevd/releases)
+[![GHCR](https://img.shields.io/badge/GHCR-zyvorai%2Fnetevd-blue?logo=docker)](https://github.com/zyvorai/netevd/pkgs/container/netevd)
 
 ![netevd — Linux network event daemon](docs/social/netevd-share-card.png)
 
-**Run scripts the moment the network changes.**
+**Kernel events → your scripts.**
 
-📖 **[User guide](docs/user/README.md)** — hooks contract, configuration, and troubleshooting.
-📡 **[Observe-only eBPF](docs/user/ebpf.md)** — packet drops, TCP retransmits, and TCP resets → the same hook contract.
+netevd turns Linux netlink (and opt-in eBPF) into drop-in hook directories — across systemd-networkd, NetworkManager, and dhclient — with policy routing, REST, and Prometheus.
 
-**netevd** runs your scripts when link, address, or route state changes on Linux — instead of NetworkManager dispatcher hacks, one-shot `ExecStartPost=` units, or cron jobs polling `ip addr`.
+**[Install](#install)** · **[User guide](docs/user/README.md)** · **[eBPF](docs/user/ebpf.md)** · **[Config example](config/netevd.example.yaml)**
 
-It bridges **systemd-networkd**, **NetworkManager**, and **dhclient** into one event system, with sub-100ms netlink-driven latency, **opt-in eBPF observation** for stack drops and TCP health, automatic policy routing for multi-homed hosts, a REST API, Prometheus metrics, and a defense-in-depth security model.
-
-## Contents
-
-- [Why netevd?](#why-netevd)
-- [Instead of...](#instead-of)
-- [Quick Start](#quick-start)
-- [Observe-only eBPF](#observe-only-ebpf)
-- [How It Works](#how-it-works)
-- [Configuration](#configuration)
-- [Script Directories](#script-directories)
-- [Automatic Policy Routing](#automatic-policy-routing)
-- [Security](#security)
-- [Performance](#performance)
-- [REST API](#rest-api)
-- [Development](#development)
-- [Enterprise](#enterprise)
-- [Support the project](#support-the-project)
-- [License](#license)
-
-## Why netevd?
-
-| Problem | netevd solution |
-|---------|----------------|
-| Need scripts to run when network state changes | Drop scripts in `/etc/netevd/routable.d/` -- done |
-| Multi-homed server with broken return-path routing | Automatic per-interface routing tables and policy rules |
-| Want real-time network events, not polling | Netlink multicast: sub-100ms latency, zero polling |
-| Need to support multiple network managers | One daemon handles networkd, NetworkManager, and dhclient |
-| Silent packet drops / TCP RST that netlink never sees | Opt-in eBPF → `drops.d` / `tcp-retransmit.d` / `tcp-reset.d` |
-| Security concerns with network daemons | Privilege separation, tight capabilities, input validation |
-
-## Instead of...
-
-| What people currently do | Why it's not enough |
+| | |
 |---|---|
-| NetworkManager `dispatcher.d/` scripts | NetworkManager only — nothing for systemd-networkd or dhclient hosts |
-| systemd-networkd unit `ExecStartPost=` | Fires once at start, not on later link/address/route changes |
-| `ifupdown` `/etc/network/if-up.d/` | Debian/Ubuntu-only; ifupdown is legacy on most current distros |
-| Cron job polling `ip addr` / `ip route` | Seconds of latency, wastes CPU, still needs you to write the diffing logic |
-| Custom netlink code in your own daemon | You end up re-implementing debounce, backend detection, and safe script execution — the parts netevd already did |
+| Backends | systemd-networkd · NetworkManager · dhclient |
+| Hooks | 17 directories (carrier, routable, link/address, eBPF drops…) |
+| Latency | &lt;100 ms netlink · zero polling |
+| eBPF | Opt-in observe-only: drops / TCP retransmit / TCP reset |
+| Ops | Policy routing · REST `:9090` · Prometheus `/metrics` |
+| License | Apache-2.0 |
 
-netevd replaces all of these with one daemon: real netlink events (sub-100ms), one script contract across all three backends, and validated input so your scripts don't need to sanitize `$LINK`/`$ADDRESSES` themselves.
+## Why this exists
 
-## Quick Start
+| You have… | netevd gives you… |
+|-----------|-------------------|
+| Scripts that should run when the network changes | Drop a file in `/etc/netevd/routable.d/` |
+| Multi-homed return-path breakage | Automatic per-interface tables + policy rules |
+| NetworkManager `dispatcher.d` only | One contract for networkd, NM, and dhclient |
+| Cron polling `ip addr` | Real netlink multicast (&lt;100 ms) |
+| Silent `kfree_skb` / TCP RST netlink never sees | Opt-in eBPF → `drops.d` / `tcp-reset.d` |
+| Hand-rolled netlink + debounce + safe exec | Already done — with validated `$LINK` / `$JSON` |
 
-### GitHub Release (recommended)
+## 30-second hook
+
+```bash
+sudo tee /etc/netevd/routable.d/01-notify.sh >/dev/null <<'EOF'
+#!/bin/bash
+logger -t netevd "$LINK is routable: $ADDRESSES"
+EOF
+sudo chmod +x /etc/netevd/routable.d/01-notify.sh
+```
+
+When the interface becomes fully routable, that script runs. Same idea for carrier, link add/remove, routes — and, with eBPF, packet drops and TCP resets.
+
+## Install
+
+### Release tarball (recommended)
 
 ```bash
 curl -LO https://github.com/zyvorai/netevd/releases/download/v0.4.1/netevd-0.4.1-linux-amd64.tar.gz
 tar xzf netevd-*-linux-amd64.tar.gz && cd netevd-*-linux-amd64
-sudo ./install.sh
-sudo systemctl enable --now netevd
+sudo ./install.sh && sudo systemctl enable --now netevd
 ```
 
-### Build from source
+### From source
 
 ```bash
 git clone https://github.com/zyvorai/netevd.git && cd netevd
 cargo build --release
-# optional observe-only eBPF (drops / TCP retransmit / TCP reset):
-#   make -C ebpf && cargo build --release --features ebpf
+# optional: make -C ebpf && cargo build --release --features ebpf
 sudo install -Dm755 target/release/netevd /usr/bin/netevd
 sudo install -Dm644 systemd/netevd.service /lib/systemd/system/netevd.service
 sudo install -Dm644 config/netevd.example.yaml /etc/netevd/netevd.yaml
 sudo systemctl enable --now netevd
 ```
 
-### First hook script
-
-Create your first script — this runs whenever an interface becomes fully routable:
+### Container
 
 ```bash
-cat <<'EOF' | sudo tee /etc/netevd/routable.d/01-notify.sh && sudo chmod +x /etc/netevd/routable.d/01-notify.sh
-#!/bin/bash
-logger -t netevd "Interface $LINK is routable: $ADDRESSES"
-EOF
+docker pull ghcr.io/zyvorai/netevd:latest-ubuntu   # or :latest-alpine
 ```
 
-Sample configuration: [config/netevd.example.yaml](config/netevd.example.yaml).
+Images ship on every `main` push. Hook scripts have `bash` and `ip`; D-Bus uses zbus (no `dbus`/`systemd` in the image).
 
-### Containers
-
-Images are published to `ghcr.io/zyvorai/netevd` on each push to `main`.
-
-| Tag | Runtime |
-|-----|---------|
-| `latest-ubuntu` | glibc image on Ubuntu 26.04 |
-| `latest-alpine` | musl image on Alpine 3.23 |
-
-Hook scripts inside the image have `bash` and `ip`. netevd speaks D-Bus with zbus, so the image does not install `dbus` or `systemd`.
-
-### Remote deploy
-
-From a checkout, build on the target and install the systemd unit. The script then creates a `veth-netevd0` / `veth-netevd1` pair (peer in a network namespace), checks ping, and checks that `link-added` / `address-added` hooks ran. The installed lab config matches only `veth-netevd*`.
+### Remote lab prove
 
 ```bash
-./scripts/deploy-remote.sh <host> [user]
+./scripts/deploy-remote.sh <host> [user]   # builds, installs, veth + eBPF attach check
 ```
 
 ## Observe-only eBPF
 
-Netlink covers link, address, and route. It does **not** see silent stack drops or TCP retransmit/RST. With `--features ebpf`, netevd attaches observe-only tracepoints and feeds the **same** hook contract:
+Netlink covers link, address, and route. It does **not** see silent stack drops or TCP retransmit/RST. With `--features ebpf`, the same hook contract gets three more sources — no XDP/TC deny, no DNS/SNI, no process attribution.
 
 | Kernel source | Hook directory |
 |---------------|----------------|
 | `skb:kfree_skb` | `/etc/netevd/drops.d/` |
 | `tcp:tcp_retransmit_skb` | `/etc/netevd/tcp-retransmit.d/` |
-| `tcp:tcp_receive_reset` / `tcp:tcp_send_reset` | `/etc/netevd/tcp-reset.d/` |
-
-This is **not** XDP/TC enforcement, DNS/SNI inspection, or process attribution — those stay out of Community scope. Programs never return `XDP_DROP`.
+| `tcp:tcp_*_reset` | `/etc/netevd/tcp-reset.d/` |
 
 ```bash
 make -C ebpf
 cargo build --release --features ebpf
 sudo install -Dm644 ebpf/netevd-ebpf.o /usr/lib/netevd/netevd-ebpf.o
-sudo install -Dm644 systemd/netevd-ebpf.conf \
-  /etc/systemd/system/netevd.service.d/ebpf.conf
+sudo install -Dm644 systemd/netevd-ebpf.conf /etc/systemd/system/netevd.service.d/ebpf.conf
 ```
 
 ```yaml
 ebpf:
   enabled: true
   drops: true
-  tcp_retransmit: false
   tcp_reset: true
-  debounce_ms: 250
   min_count: 8
-  skip_unknown_ifindex: true
-  reasons_deny: ["NO_SOCKET"]   # optional noise filter
+  reasons_deny: ["NO_SOCKET"]
 ```
 
-Hooks get `$DROP_REASON`, `$PROTOCOL`, `$SPORT`/`$DPORT`, `$COUNT`, and `$JSON`. Metrics: `netevd_ebpf_samples_total`, `netevd_ebpf_hooks_total`, `netevd_ebpf_ring_lost_total`, `netevd_ebpf_attached`.
+Scripts get `$DROP_REASON`, `$PROTOCOL`, `$SPORT`/`$DPORT`, `$COUNT`, `$JSON`. Metrics: `netevd_ebpf_*`. Full guide: [docs/user/ebpf.md](docs/user/ebpf.md).
 
-Full guide: [docs/user/ebpf.md](docs/user/ebpf.md) · drain path: [docs/user/ebpf-ringbuf.md](docs/user/ebpf-ringbuf.md).
+## How it works
 
-## How It Works
-
-```
-                    +------------------+
-                    |   Linux Kernel   |
-                    | Netlink + eBPF   |
-                    |  (observe-only)  |
-                    +--------+---------+
-                             |
-         +-------------------+-------------------+
-         |                   |                   |
-   +-----------+      +-----------+      +-----------+
-   | Addresses |      |   Links   |      |  Routes   |
-   |  watcher  |      |  watcher  |      |  watcher  |
-   +-----+-----+      +-----+-----+      +-----+-----+
-         |                   |                   |
-         +-------------------+-------------------+
-                             |
-                    +--------+---------+
-                    |  NetworkState    |
-                    |  (Arc<RwLock>)   |
-                    +--------+---------+
-                             |
-              +--------------+--------------+
-              |              |              |
-        +-----+-----+  +----+----+  +------+------+
-        |  Routing   |  | Script  |  |  eBPF obs.  |
-        |  policy    |  |  exec   |  | drops/rtx/  |
-        |  rules     |  |         |  |   reset     |
-        +------------+  +---------+  +-------------+
+```mermaid
+flowchart LR
+  Kernel[Netlink_plus_eBPF] --> State[NetworkState]
+  State --> Hooks[Hook_scripts]
+  State --> Routing[Policy_routing]
+  State --> API[REST_and_metrics]
 ```
 
-**Event sources** -- netevd subscribes to kernel netlink multicast groups and listens for DBus signals from your chosen backend (systemd-networkd, NetworkManager) or watches dhclient lease files via inotify. With `--features ebpf`, it also drains observe-only tracepoints (drops, TCP retransmit, TCP reset) into the same hook directories.
+1. **Sources** — netlink multicast, backend D-Bus (or dhclient leases), optional eBPF ringbuf  
+2. **State** — one `NetworkState` behind `Arc<RwLock>`, updated by Tokio tasks  
+3. **Actions** — matching `/etc/netevd/<event>.d/` scripts, policy rules, optional DNS/hostname via D-Bus  
 
-**State management** -- All state is held in a single `NetworkState` behind `Arc<RwLock>`, updated by concurrent Tokio tasks. Read locks for queries, write locks for mutations -- no races.
+## Hooks (headline dirs)
 
-**Actions** -- On state changes, netevd configures routing policy rules, executes scripts from the matching event directory, and optionally pushes DNS/hostname updates via DBus.
+| Directory | Fires when |
+|-----------|------------|
+| `carrier.d/` / `no-carrier.d/` | Link up / down |
+| `routable.d/` | Full L3 connectivity |
+| `link-added.d/` / `link-removed.d/` | Interface appears / disappears |
+| `address-added.d/` | Address configured |
+| `drops.d/` / `tcp-reset.d/` | eBPF observe-only (opt-in) |
 
-## Configuration
+All 17 directories, env vars, and `netevd.event.v1` JSON: [docs/hooks-contract.md](docs/hooks-contract.md). Use `01-` / `02-` prefixes for order; non-zero exits are logged and do not block siblings.
 
-```yaml
-# /etc/netevd/netevd.yaml
-system:
-  log_level: "info"
-  backend: "systemd-networkd"    # or "NetworkManager" or "dhclient"
+Every script gets `$LINK`, `$LINKINDEX`, `$STATE`, `$BACKEND`, `$ADDRESSES` (plus `$JSON` / DHCP fields by backend).
 
-monitoring:
-  interfaces:                    # empty = monitor all
-    - eth0
-    - eth1
-  match_patterns:                # globs for address/link/mtu hooks; empty = all
-    - "eth*"
-  exclude:                       # globs to skip; empty = built-in virtual/CNI defaults
-    - "veth*"
+## Policy routing
 
-hooks:
-  debounce_ms: 50                # coalesce netlink bursts per (link, event)
-  timeout_sec: 30                # per-script timeout
+List an interface under `routing.policy_rules` and netevd:
 
-routing:
-  policy_rules:                  # auto-create per-interface routing tables
-    - eth1
-
-backends:
-  systemd_networkd:
-    emit_json: true              # pass full JSON to scripts via $JSON
-  dhclient:
-    use_dns: false
-    use_domain: false
-    use_hostname: false
-  networkmanager: {}
-```
-
-Full template: [config/netevd.example.yaml](config/netevd.example.yaml)
-
-## Script Directories
-
-Scripts are organized by the event that triggers them:
-
-| Directory | Trigger | Backends |
-|-----------|---------|----------|
-| `carrier.d/` | Cable connected | All |
-| `no-carrier.d/` | Cable disconnected | All |
-| `configured.d/` | Interface has IP | systemd-networkd |
-| `degraded.d/` | Partial configuration | systemd-networkd |
-| `routable.d/` | Full connectivity | systemd-networkd, dhclient |
-| `activated.d/` | Device activated | NetworkManager |
-| `disconnected.d/` | Device disconnected | NetworkManager |
-| `manager.d/` | Manager state change | All |
-| `routes.d/` | Routing table change | All |
-| `address-added.d/` | IP address added to an interface | All (netlink, backend-independent) |
-| `address-removed.d/` | IP address removed from an interface | All (netlink, backend-independent) |
-| `link-added.d/` | Interface appears (veth, tap, WireGuard, ...) | All (netlink, backend-independent) |
-| `link-removed.d/` | Interface disappears | All (netlink, backend-independent) |
-| `mtu.d/` | Interface MTU changes | All (netlink, backend-independent) |
-| `drops.d/` | Kernel packet drop (`kfree_skb`) | eBPF (opt-in `--features ebpf`) |
-| `tcp-retransmit.d/` | TCP retransmission | eBPF (opt-in) |
-| `tcp-reset.d/` | TCP RST send/receive | eBPF (opt-in) |
-
-Scripts run in alphabetical order. Use numeric prefixes (`01-`, `02-`) to control ordering. Non-zero exit codes are logged but don't block other scripts.
-
-The `address-*`, `link-*`, and `mtu` hooks fire per interface based on `monitoring.match_patterns` / `monitoring.exclude` (glob lists, defaulting to excluding `lo`/`docker*`/`veth*`/`cni*`/`cilium*`), independent of whether that interface is in `routing.policy_rules`. They're also debounced (`hooks.debounce_ms`, default 50ms) so a burst of netlink events collapses into one script run per `(interface, event)` pair. See [docs/hooks-contract.md](docs/hooks-contract.md) for the full JSON schema and config keys.
-
-### Environment Variables
-
-Every script receives:
-
-| Variable | Example |
-|----------|---------|
-| `$LINK` | `eth0` |
-| `$LINKINDEX` | `2` |
-| `$STATE` | `routable` |
-| `$BACKEND` | `systemd-networkd` |
-| `$ADDRESSES` | `192.168.1.100 10.0.0.5` |
-
-**systemd-networkd** adds `$JSON` with full interface data (MTU, driver, DNS, routes).
-**dhclient** adds `$DHCP_ADDRESS`, `$DHCP_GATEWAY`, `$DHCP_DNS`, `$DHCP_DOMAIN`, `$DHCP_HOSTNAME`.
-**The netlink-driven hooks** (`address-*`, `link-*`, `mtu`, `routes`) always set `$JSON` to a versioned `netevd.event.v1` payload (`$BACKEND` is `netlink` for these).
-
-## Automatic Policy Routing
-
-For multi-homed servers, netevd solves the classic "wrong interface" problem automatically. When you list an interface under `routing.policy_rules`, netevd:
-
-1. Creates a custom routing table (ID = 200 + interface index)
-2. Adds `from <ip> lookup <table>` and `to <ip> lookup <table>` rules
-3. Installs a default route via the interface's gateway in that table
-4. Cleans up automatically when addresses are removed
+1. Creates table `200 + ifindex`  
+2. Adds `from <ip>` / `to <ip>` lookup rules  
+3. Installs a default via that interface’s gateway  
+4. Tears it down when addresses leave  
 
 ```bash
-# After netevd configures eth1 (index 3, IP 192.168.1.100):
 $ ip rule list
 32765: from 192.168.1.100 lookup 203
-32766: to 192.168.1.100 lookup 203
 
 $ ip route show table 203
 default via 192.168.1.1 dev eth1
 ```
 
+## Configuration
+
+Minimal shape — full template: [config/netevd.example.yaml](config/netevd.example.yaml).
+
+```yaml
+system:
+  backend: "systemd-networkd"    # or NetworkManager | dhclient
+monitoring:
+  match_patterns: ["eth*", "wg*"]
+  exclude: ["lo", "docker*", "veth*"]
+hooks:
+  debounce_ms: 50
+routing:
+  policy_rules: ["eth1"]
+```
+
 ## Security
 
-netevd follows a defense-in-depth model:
+1. Starts as root, drops to user `netevd`  
+2. `CAP_NET_ADMIN` by default; eBPF builds also keep `CAP_BPF`, `CAP_PERFMON`, `CAP_DAC_READ_SEARCH`  
+3. Validated interface names / IPs / hostnames — no shell metacharacters  
+4. Scripts exec’d directly (not `sh -c`)  
+5. systemd hardening (`NoNewPrivileges`, `ProtectSystem=strict`, …); eBPF re-allows `bpf` / `perf_event_open`  
 
-1. **Privilege separation** -- Starts as root, immediately drops to the `netevd` user via `setuid`/`setgid`
-2. **Minimal capabilities** -- Retains `CAP_NET_ADMIN` by default; with `--features ebpf` also `CAP_BPF`, `CAP_PERFMON`, and `CAP_DAC_READ_SEARCH` for observe-only attach. Child processes inherit nothing
-3. **Input validation** -- All external data (interface names, IPs, hostnames) is validated; shell metacharacters are rejected
-4. **No shell intermediary** -- Scripts are executed directly, not via `sh -c`
-5. **systemd hardening** -- `NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp` (eBPF builds re-allow `bpf` / `perf_event_open`)
-
-Details: **[Security Policy](SECURITY.md)**
+Details: [SECURITY.md](SECURITY.md).
 
 ## Performance
 
-| Metric | Value |
-|--------|-------|
-| Memory (idle) | 3-5 MB RSS |
-| CPU (idle) | < 1% |
-| Event latency | < 100ms (netlink multicast) |
-| Event-to-script | < 10ms |
-| Throughput | 1000+ events/sec |
+| Metric | Typical |
+|--------|---------|
+| RSS idle | 3–5 MB |
+| CPU idle | &lt;1 % |
+| Netlink event latency | &lt;100 ms |
+| Event → script | &lt;10 ms |
+| Throughput | 1000+ events/s |
 
 ## REST API
 
-9 endpoints built on Axum for remote management and monitoring:
+Same port as Prometheus (default `9090`):
 
 ```bash
-curl http://localhost:9090/api/v1/status       # Daemon status
-curl http://localhost:9090/api/v1/interfaces    # List interfaces
-curl http://localhost:9090/api/v1/routes        # Routing table
-curl http://localhost:9090/api/v1/events        # Event history
-curl http://localhost:9090/metrics              # Prometheus metrics (same port as the API)
-curl http://localhost:9090/health               # Health check
+curl -s localhost:9090/api/v1/status
+curl -s localhost:9090/api/v1/interfaces
+curl -s localhost:9090/api/v1/events
+curl -s localhost:9090/metrics
+curl -s localhost:9090/health
 ```
-
-REST API and metrics use the daemon HTTP port (default `9090`). Tune behavior in `/etc/netevd/netevd.yaml` — start from [config/netevd.example.yaml](config/netevd.example.yaml).
 
 ## Development
 
 ```bash
 cargo build && cargo test && cargo clippy -- -D warnings
+# eBPF unit tests (no CAP_BPF): cargo test --lib ebpf::
 ```
 
 ## Enterprise
 
-| | Community Edition (this repo) | Enterprise ([zyvor.dev](https://zyvor.dev/?utm_source=github&utm_medium=netevd)) |
-|---|------------------------------|-------------------------------------------------------------------------------------|
-| **Support** | [GitHub Issues](https://github.com/zyvorai/netevd/issues) | SLA, [sales@zyvor.dev](mailto:sales@zyvor.dev), professional services |
-| **Scope** | Self-hosted event hooks | Production rollouts, platform integration |
-| **Platform** | netevd daemon | Full networking stack with netctl, cloud-netconfig, HyperSDK |
+| | Community (this repo) | Enterprise |
+|---|----------------------|------------|
+| Support | [GitHub Issues](https://github.com/zyvorai/netevd/issues) | SLA · [sales@zyvor.dev](mailto:sales@zyvor.dev) |
+| Scope | Self-hosted hooks + policy routing | Production rollouts, platform integration |
+| Platform | netevd | netctl, cloud-netconfig, HyperSDK |
 
-**Next steps:** [Demo](https://zyvor.dev/demo?utm_source=github&utm_medium=netevd) · [ROI](https://zyvor.dev/roi?utm_source=github&utm_medium=netevd) · [Pricing](https://zyvor.dev/pricing?utm_source=github&utm_medium=netevd) · [Contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd) · [sales@zyvor.dev](mailto:sales@zyvor.dev)
+[Demo](https://zyvor.dev/demo?utm_source=github&utm_medium=netevd) · [Pricing](https://zyvor.dev/pricing?utm_source=github&utm_medium=netevd) · [Contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd) · [docs/enterprise.md](docs/enterprise.md)
 
-Community Edition covers self-hosted event hooks and policy routing. Production SLAs, supported deployments, and the full HyperSDK platform → contact Zyvor (not GitHub Issues). Full detail: [docs/enterprise.md](docs/enterprise.md).
+## Support
 
-## Support the project
-
-netevd Community Edition is free and open source, maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev?utm_source=github&utm_medium=netevd)
-
-- **Enterprise / production:** [zyvor.dev/contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd) · [sales@zyvor.dev](mailto:sales@zyvor.dev)
-- **Community help:** [GitHub Issues](https://github.com/zyvorai/netevd/issues) · [SECURITY.md](SECURITY.md)
+Maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev?utm_source=github&utm_medium=netevd). Community help: [Issues](https://github.com/zyvorai/netevd/issues) · [SECURITY.md](SECURITY.md).
 
 ## License
 
-### Open source (Apache-2.0)
-
-This repository is licensed under the [Apache License, Version 2.0](LICENSE).
-You may use, modify, and run it for personal, lab, and commercial production
-use at no charge, subject to Apache-2.0 (preserve notices / NOTICE where required).
-
-### Enterprise
-
-Production support, SLAs, and Zyvor Enterprise products are licensed separately.
-Contact [sales@zyvor.dev](mailto:sales@zyvor.dev) or see [zyvor.dev](https://zyvor.dev).
+**Apache-2.0** — use, modify, and run in production subject to the [LICENSE](LICENSE). Enterprise support and Zyvor products are licensed separately ([sales@zyvor.dev](mailto:sales@zyvor.dev)).

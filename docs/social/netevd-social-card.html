@@ -44,8 +44,8 @@ h1 em { font-style:normal; color:var(--signal); }
 <div class="bar"></div>
 <div class="wrap">
   <div class="top"><img src="zyvor-mark.svg" alt=""><b>Zyvor</b><span>&middot;</span><span>netevd</span><span class="r">Network events</span></div>
-  <h1>Run scripts on <em>real network change</em>.</h1>
-  <p class="sub">One daemon bridges network managers into a single event system: routable hooks, automatic multi-homed policy routing, validated script execution.</p>
+  <h1>Kernel events → <em>your scripts</em>.</h1>
+  <p class="sub">Netlink + opt-in eBPF across systemd-networkd, NetworkManager and dhclient — same hook dirs, policy routing, REST and Prometheus.</p>
   <div class="flow">
     <div class="step k"><span class="lane">LISTEN</span><span class="n">1</span>
       <h3>Kernel events</h3><p>Netlink multicast for links, addresses and routes — no polling cron.</p></div>
@@ -60,8 +60,8 @@ h1 em { font-style:normal; color:var(--signal); }
   </div>
   <div class="attr"><span class="tag">HOOK</span><span>routable.d/01-notify.sh · LINK=eth0 · ADDRESSES=10.0.0.5</span><span class="why">Illustrative</span></div>
   <div class="chips">
-    <span class="chip">REST API</span>
-    <span class="chip">< 100ms latency</span>
+    <span class="chip">eBPF observe</span>
+    <span class="chip">&lt; 100ms latency</span>
     <span class="chip g">Defense in depth</span>
     <span class="chip g">ghcr.io images</span>
     <span class="chip g">Apache-2.0</span>
