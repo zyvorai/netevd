@@ -42,7 +42,7 @@ rtnetlink = "0.23"
 netlink-packet-route = "0.30"
 netlink-packet-core = "0.8"
 netlink-sys = "0.9"
-netlink-proto = "0.12"
+netlink-proto = "0.13"
 
 # DBus
 zbus = { version = "5.14", features = ["tokio"] }
