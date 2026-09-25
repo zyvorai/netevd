@@ -1267,7 +1267,7 @@ dependencies = [
  "ipnetwork",
  "libc",
  "netlink-packet-core 0.8.1",
- "netlink-packet-route 0.30.0",
+ "netlink-packet-route",
  "netlink-proto",
  "netlink-sys",
  "nix 0.31.3",
@@ -1306,18 +1306,6 @@ name = "netlink-packet-core"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d6e2daf9a8c2e21302714706860a0e6be02e03d17294ecc66b354ea7d4059dd"
-
-[[package]]
-name = "netlink-packet-route"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be8919612f6028ab4eacbbfe1234a9a43e3722c6e0915e7ff519066991905092"
-dependencies = [
- "bitflags",
- "libc",
- "log",
- "netlink-packet-core 0.8.1",
-]
 
 [[package]]
 name = "netlink-packet-route"
@@ -1784,7 +1772,7 @@ dependencies = [
  "futures-util",
  "log",
  "netlink-packet-core 0.9.0",
- "netlink-packet-route 0.33.0",
+ "netlink-packet-route",
  "netlink-proto",
  "netlink-sys",
  "nix 0.30.1",
