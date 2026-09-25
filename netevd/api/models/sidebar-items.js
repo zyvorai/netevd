@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ApiResponse","DaemonStatus","HealthChecks","HealthStatus","InterfaceInfo","NetworkEvent","ReloadRequest","ReloadResponse","RouteInfo","RoutingRuleInfo"]};

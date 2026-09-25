@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_route","calculate_table_id","discover_gateway","remove_route"]};
