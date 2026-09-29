@@ -7,6 +7,9 @@
 [![Release](https://img.shields.io/github/v/release/zyvorai/netevd?sort=semver)](https://github.com/zyvorai/netevd/releases)
 [![GHCR](https://img.shields.io/badge/GHCR-zyvorai%2Fnetevd-blue?logo=docker)](https://github.com/zyvorai/netevd/pkgs/container/netevd)
 
+[![Book a demo](https://img.shields.io/badge/Book_a_demo-0071e3?style=for-the-badge)](https://zyvor.dev/schedule?utm_source=github&utm_medium=netevd&utm_campaign=readme_hero)
+[![30-day PoC](https://img.shields.io/badge/30--day_PoC-1d1d1f?style=for-the-badge)](https://zyvor.dev/poc?utm_source=github&utm_medium=netevd&utm_campaign=readme_hero)
+
 ![netevd — Linux network event daemon](docs/social/netevd-share-card.png)
 
 **Kernel events → your scripts.**
@@ -217,13 +220,15 @@ cargo build && cargo test && cargo clippy -- -D warnings
 |---|----------------------|------------|
 | Support | [GitHub Issues](https://github.com/zyvorai/netevd/issues) | SLA · [sales@zyvor.dev](mailto:sales@zyvor.dev) |
 | Scope | Self-hosted hooks + policy routing | Production rollouts, platform integration |
-| Platform | netevd | netctl, cloud-netconfig, HyperSDK |
+| Platform | netevd | netctl, cloud-netconfig, Zyvor Platform |
 
-[Demo](https://zyvor.dev/demo?utm_source=github&utm_medium=netevd) · [Pricing](https://zyvor.dev/pricing?utm_source=github&utm_medium=netevd) · [Contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd) · [docs/enterprise.md](docs/enterprise.md)
+[Demo](https://zyvor.dev/demo?utm_source=github&utm_medium=netevd&utm_campaign=readme_edition) · [Pricing](https://zyvor.dev/pricing?utm_source=github&utm_medium=netevd&utm_campaign=readme_edition) · [Contact](https://zyvor.dev/contact?utm_source=github&utm_medium=netevd&utm_campaign=readme_edition) · [docs/enterprise.md](docs/enterprise.md)
 
 ## Support
 
-Maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev?utm_source=github&utm_medium=netevd). Community help: [Issues](https://github.com/zyvorai/netevd/issues) · [SECURITY.md](SECURITY.md).
+[Book a demo](https://zyvor.dev/schedule?utm_source=github&utm_medium=netevd&utm_campaign=readme_footer) · [30-day PoC](https://zyvor.dev/poc?utm_source=github&utm_medium=netevd&utm_campaign=readme_footer) · fallback: [sales@zyvor.dev](mailto:sales@zyvor.dev)
+
+Maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev/?utm_source=github&utm_medium=netevd&utm_campaign=readme_footer). Community help: [Issues](https://github.com/zyvorai/netevd/issues) · [SECURITY.md](SECURITY.md).
 
 ## License
 
