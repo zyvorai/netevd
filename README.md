@@ -232,4 +232,6 @@ Maintained by **Susant Sahani** · [Zyvor AI Labs](https://zyvor.dev/?utm_source
 
 ## License
 
+Commercial subscriptions and support: see [docs/SUBSCRIPTION-MODEL.md](docs/SUBSCRIPTION-MODEL.md).
+
 **Apache-2.0** — use, modify, and run in production subject to the [LICENSE](LICENSE). Enterprise support and Zyvor products are licensed separately ([sales@zyvor.dev](mailto:sales@zyvor.dev)).
