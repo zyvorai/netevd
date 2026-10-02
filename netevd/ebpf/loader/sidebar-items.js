@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["object_exists","resolve_object"],"mod":["aya_attach"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["drop_privileges","is_root","lookup_user"]};

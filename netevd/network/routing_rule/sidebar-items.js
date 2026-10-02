@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["ROUTE_TABLE_BASE"],"fn":["add_routing_rule_from","add_routing_rule_to","remove_routing_rules"]};
